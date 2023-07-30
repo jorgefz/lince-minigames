@@ -1,45 +1,101 @@
-# Lince 0.5.0
+# Lince 0.7.0
 
-An OpenGL game engine written in C, currently in development. It uses GLFW for the windowing system, GLAD for the OpenGL loader, Premake5 as the build system, and CGLM for vector and matrix operations.
+Lince is a game engine written in C for making 2D games.
+Lince is currently in very early development.
+
+## Minimal code example - drawing a red square
+
+```c
+#include "lince.h"
+
+LinceCamera* camera;
+LinceSprite square = {
+    .x = 0, .y = 0,     // position
+    .w = 1, .h = 1,     // size
+    .color = {1, 0, 0, 1} // rgba
+};
+
+void OnInit() {
+	camera = LinceCreateCamera(LinceGetAspectRatio());
+}
+
+void OnUpdate(float dt) {
+    LinceBeginScene(camera);
+	LinceDrawSprite(&square, NULL);
+    LinceEndScene();
+}
+
+void OnTerminate() {
+	LinceDeleteCamera(camera);
+}
+
+int main() {
+
+	LinceApp* app = LinceGetAppState();
+	app->game_init = OnInit;
+	app->game_on_update = OnUpdate;
+	app->game_terminate = OnTerminate;
+
+	LinceRun();
+
+	return 0;
+}
+```
+
+## Features
+
+* 2D graphics
+* Cross-platform (Windows and Linux)
+* Integrated GUI (nuklear)
+* Audio system (Miniaudio)
+* Event system for user input
+* Tilemaps and sprite animations
+* Lightweight Entity Component System (ECS) with unlimited entities and components
+* Collision system for rectangles.
+* Built-in level and scene editor
 
 ## Documentation
 
-The documentation is available [here](./docs/src/SUMMARY.md) as Markdown, or at `docs/book/index.html` which you can open with your favourite web browser.
+You need to have Doxygen installed from https://www.doxygen.nl/ or via the command line on Linux:
+```
+sudo apt install doxygen
+```
+Then, simply run `doxygen`, and check out the HTML documentation on `doxydocs/html/index.html`.
 
 ## Dependencies
 
-The project uses Premake5 as the build system (https://premake.github.io/).
+The project uses Premake5 by default as the build system (https://premake.github.io/).
+It also requires OpenGL 4.0 or greater.
 
-On Linux, the following are required:
+On Linux, the following packages are required:
+```bash
+sudo apt install make libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxtst-dev libgl-dev`
+```
 
-* make
-* libx11-dev
-* libxcursor-dev
-* libxrandr-dev
-* libxinerama-dev
-* libxtst-dev
-* libgl-dev
+If you are using Windows Subsystem for Linux on Windows 11 (WSLg), as of December 2022, you must manually connect ALSA to PulseAudio following the steps detailed on this thread: https://github.com/microsoft/wslg/issues/864.
 
-On Windows, Windows SDK is required.
+On Windows, Visual Studo 2022 is recommended.
+
 
 ## Building Lince
 
-On the root folder (where this README.md file is located), run `premake5` to output the building tool appropriate to your OS:
+On the root folder (where this README.md file is located), run `premake5` to produce the build configuration files appropriate to your building tool:
 
 * For Unix: `premake5 gmake2`, then run `make`.
 * For Windows: `premake5 vs2020`, then load the Visual Studio solution and compile.
 
-The game executable will be located at `bin/{configuration}-{system}-{architecture}/lince`, e.g. `bin/Debug-Linux-x86_64/lince`. Currently, this project is being tested on Windows 10 (x64) and GNU/Linux Ubuntu-20.04 (x64).
+The game executable will be located at `bin/{configuration}-{system}-{architecture}/{project}`, e.g. `bin/Debug-Linux-x86_64/editor`. Currently, this project is being tested on Windows 11 (x64) and WSLg GNU/Linux Ubuntu-22.04 (x64).
 
-The project contains the source code for the following packages, which are built into binaries as part of the compilation process:
+This repository contains the source code for the following projects, which are built into binaries as part of the compilation process:
 
 * GLFW: windowing system (https://glfw.org)
 * GLAD: OpenGL loader (https://glad.dav1d.de/)
 * CGLM: OpenGL vector and matrix mathematics (https://cglm.readthedocs.io/en/latest)
 * stb\_image.h: Single-header image loader by Sean Barret (https://github.com/nothings/stb)
 * Nucklear: ANSI C single-header UI library (https://github.com/Immediate-Mode-UI/Nuklear)
+* Miniaudio: Audio playback and capture library (https://github.com/mackron/miniaudio)
 
-The project makes use of `mdbook` to generate the documentation website (https://github.com/rust-lang/mdBook)
+The project makes use of `mdbook` to generate the documentation website (https://github.com/rust-lang/mdBook).
 
 
 ## Credit

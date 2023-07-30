@@ -1,0 +1,30 @@
+.vscode
+log.txt
+null.d
+docs/html
+docs/latex
+
+# Visual Studio files
+.vs
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user
+
+# Build tools and scripts
+**.exe
+**.sh
+premake5
+docs/mdbook
+
+# Output files
+**/Makefile
+**.d
+**/profile.txt
+obj/
+bin/
+vendor/glfw/bin/
+vendor/glfw/obj/
+vendor/glfw/build/
+vendor/glad/bin/
+vendor/glad/obj/

@@ -36,13 +36,12 @@ const char default_vertex_source[] =
 	"layout (location = 1) in vec2 aTexCoord;\n"
 	"layout (location = 2) in vec4 aColor;\n"
 	"layout (location = 3) in float aTextureID;\n"
+	"uniform mat4 u_view_proj = mat4(1.0);\n"
 	"out vec4 vColor;\n"
 	"out vec2 vTexCoord;\n"
 	"out float vTextureID;\n"
-	"uniform mat4 u_view_proj = mat4(1.0);\n"
-	"uniform mat4 u_transform = mat4(1.0);\n"
 	"void main(){\n"
-	"   gl_Position = u_view_proj * u_transform * vec4(aPos, 1.0);\n"
+	"   gl_Position = u_view_proj * vec4(aPos, 1.0);\n"
 	"   vColor = aColor;\n"
 	"   vTexCoord = aTexCoord;\n"
 	"   vTextureID = aTextureID;\n"
@@ -57,7 +56,7 @@ float LinceYSortedZ(float y, vec2 ylim, vec2 zlim){
 }
 
 // stores information of one vertex
-// ensure this struct has no padding
+// Should be packed because everything is a float
 typedef struct LinceQuadVertex {
 	float x, y, z; 	   // position
 	float s, t; 	   // texture coordinates
@@ -66,7 +65,7 @@ typedef struct LinceQuadVertex {
 } LinceQuadVertex;
 
 typedef struct LinceRendererState {
-	LinceShader* shader;
+	LinceShader *default_shader, *shader;
 	LinceTexture* white_texture;
 	
 	LinceVertexArray* va;
@@ -178,16 +177,17 @@ void LinceInitRenderer() {
 	LinceSetTextureData(renderer_state.white_texture, white_pixel);
 	LinceBindTexture(renderer_state.white_texture, 0);
 	
-	renderer_state.shader = LinceCreateShaderFromSrc(
+	renderer_state.default_shader = LinceCreateShaderFromSrc(
 		"RendererShader",
 		default_vertex_source,
 		default_fragment_source
 	);
-    LinceBindShader(renderer_state.shader);
+    LinceBindShader(renderer_state.default_shader);
 
 	int samplers[MAX_TEXTURE_SLOTS] = { 0 };
 	for (int i = 0; i != MAX_TEXTURE_SLOTS; ++i) samplers[i] = i;
-	LinceSetShaderUniformIntN(renderer_state.shader, "uTextureSlots", samplers, MAX_TEXTURE_SLOTS);
+	LinceSetShaderUniformIntN(renderer_state.default_shader, "uTextureSlots", samplers, MAX_TEXTURE_SLOTS);
+	renderer_state.shader = renderer_state.default_shader;
 
 	LINCE_PROFILER_END(timer);
 }
@@ -203,7 +203,7 @@ void LinceTerminateRenderer() {
 		renderer_state.index_batch = NULL;
 	}
 
-	LinceDeleteShader(renderer_state.shader);
+	LinceDeleteShader(renderer_state.default_shader);
     LinceDeleteTexture(renderer_state.white_texture);
 
 	LinceDeleteVertexBuffer(renderer_state.vb);
@@ -215,7 +215,7 @@ void LinceBeginScene(LinceCamera* cam) {
 	LINCE_PROFILER_START(timer);
 
 	/* Bind OpenGL objects */
-	LinceBindShader(renderer_state.shader);
+	LinceBindShader(renderer_state.default_shader);
 	LinceBindVertexArray(renderer_state.va);
     LinceBindIndexBuffer(renderer_state.ib);
 
@@ -224,7 +224,8 @@ void LinceBeginScene(LinceCamera* cam) {
 	LinceEnableDepthTest();
 
 	/* Update camera */
-	LinceSetShaderUniformMat4(renderer_state.shader, "u_view_proj", cam->view_proj);
+	LinceSetShaderUniformMat4(renderer_state.default_shader,
+		"u_view_proj", cam->view_proj);
 	
 	/* Reset batch */
 	renderer_state.quad_count = 0;
@@ -262,8 +263,18 @@ void LinceStartNewBatch(){
 	renderer_state.texture_slot_count = 1;
 }
 
-void LinceDrawQuad(LinceQuadProps props) {
+void LinceDrawSprite(LinceSprite* sprite, LinceShader* shader) {
 	LINCE_PROFILER_START(timer);
+
+	// Choose shader
+	if(!shader){
+		shader = renderer_state.default_shader;
+		LinceBindShader(renderer_state.default_shader);
+	} else if (shader != renderer_state.shader){
+		LinceStartNewBatch();
+		LinceBindShader(renderer_state.shader);
+	}
+	renderer_state.shader = shader;
 
 	// batch size check
 	if (renderer_state.quad_count >= MAX_QUADS ||
@@ -274,22 +285,19 @@ void LinceDrawQuad(LinceQuadProps props) {
 	
 	// calculate texture index
 	float texture_index = 0.0f;
-	if(props.tile){
-		props.texture = props.tile->texture;
-	}
-
-	if(props.texture){
+	
+	if(sprite->texture){
 		uint32_t slots = renderer_state.texture_slot_count;
 
 		// check if texture already in slots
 		for(uint32_t i = 0; i != slots; ++i){
-			if(props.texture != renderer_state.texture_slots[i]) continue;
+			if(sprite->texture != renderer_state.texture_slots[i]) continue;
 			texture_index = (float)i;
 			break;
  		}
 		// otherwise add texture
 		if(texture_index <= 0.5f){
-			renderer_state.texture_slots[slots] = props.texture;
+			renderer_state.texture_slots[slots] = sprite->texture;
 			renderer_state.texture_slot_count++;
 			texture_index = (float)slots;
 		}
@@ -297,10 +305,10 @@ void LinceDrawQuad(LinceQuadProps props) {
 
 	// calculate transform
 	mat4 transform = GLM_MAT4_IDENTITY_INIT;
-	vec4 pos = {props.x, props.y, props.zorder, 1.0};
-	vec3 scale = {props.w, props.h, 1.0};
+	vec4 pos = {sprite->x, sprite->y, sprite->zorder, 1.0};
+	vec3 scale = {sprite->w, sprite->h, 1.0};
     glm_translate(transform, pos);
-	glm_rotate(transform, glm_rad(props.rotation), (vec3){0.0, 0.0, -1.0});
+	glm_rotate(transform, glm_rad(sprite->rotation), (vec3){0.0, 0.0, -1.0});
     glm_scale(transform, scale);
 
 	// append transformed vertices to batch
@@ -313,21 +321,21 @@ void LinceDrawQuad(LinceQuadProps props) {
 		vertex.y = res[1];
 		vertex.z = res[2];
 
-		if(props.tile){
-			vertex.s = props.tile->coords[i*2];
-			vertex.t = props.tile->coords[i*2 + 1];
+		if(sprite->tile){
+			vertex.s = sprite->tile->coords[i*2];
+			vertex.t = sprite->tile->coords[i*2 + 1];
 		} else {
 			vertex.s = quad_vertices[i].s;
 			vertex.t = quad_vertices[i].t;
 		}
 
 		vertex.texture_id = texture_index;
-		memcpy(vertex.color, props.color, sizeof(float)*4);
+		memcpy(vertex.color, sprite->color, sizeof(float)*4);
 		size_t offset = renderer_state.quad_count * QUAD_VERTEX_COUNT + i;
 		memcpy(renderer_state.vertex_batch + offset, &vertex, sizeof(vertex));
 	}
 	renderer_state.quad_count++;
-	
+
 	LINCE_PROFILER_END(timer);
 }
 

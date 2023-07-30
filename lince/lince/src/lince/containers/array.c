@@ -42,12 +42,54 @@ static array_t* extend_capacity(array_t* array){
 
 
 // -- INITIALIZATIONS
+
+/*
+Initialises an array via a given pointer.
+Should be later freed using `array_uninit`.
+*/
+void array_init(array_t* array, uint32_t element_size){
+	if(!array) return;
+	*array = (array_t){0};
+	array->element_size = element_size;
+}
+
+/*
+Deallocates and resets the array data without freeing the array object itself.
+*/
+void array_uninit(array_t* array){
+	if(!array) return;
+	if(array->data) free(array->data);
+	*array = (array_t){0};
+}
+
+
 /* Creates a new array of size zero */
-array_t array_create(uint32_t element_size){
-	array_t array = {0};
-	array.element_size = element_size;
-	// initial capacity?
+array_t* array_create(uint32_t element_size){
+	array_t* array = calloc(1, sizeof(array_t));
+	if(!array) return NULL;
+	array->element_size = element_size;
 	return array;
+}
+
+/* Frees all the elements of an array */
+void array_destroy(array_t* array){
+	if(!array) return;
+	if(array->data) free(array->data);
+	free(array);
+}
+
+array_t* array_copy(array_t* orig){
+	if(!orig) return NULL;
+	array_t* new = malloc(sizeof(array_t));
+	LINCE_ASSERT_ALLOC(new, sizeof(array_t));
+	memmove(new, orig, sizeof(array_t));
+	if(orig->data){
+		size_t bytes = orig->capacity * orig->element_size;
+		new->data = malloc(bytes);
+		LINCE_ASSERT_ALLOC(new->data, bytes);
+		memmove(new->data, orig->data, bytes);
+	}
+	return new;
 }
 
 /* Pre-allocates a given number of elements but does not initialise them */
@@ -199,13 +241,3 @@ array_t* array_clear(array_t* array){
 	return array;
 }
 
-// -- FREEING
-/* Frees all the elements of an array */
-void array_destroy(array_t* array){
-	if(!array) return;
-	if(array->data) free(array->data);
-	array->capacity = 0;
-	array->size = 0;
-	array->element_size = 0;
-	array->data = NULL;
-}
