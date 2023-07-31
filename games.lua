@@ -6,6 +6,8 @@ project "pong"
     staticruntime "on"
     location "pong"
 
+    defines {"LINCE_DIR=\"lince/\""}
+
     targetdir ("bin/" .. OutputDir .. "/%{prj.name}")
     objdir ("obj/" .. OutputDir .. "/%{prj.name}")
 
@@ -35,7 +37,15 @@ project "pong"
         "miniaudio"
     }
 
-    libdirs {"bin/" .. OutputDir .. "/lince"}
+    libdirs {
+        "lince/bin/" .. OutputDir .. "/lince",
+        "lince/bin/" .. OutputDir .. "/glad",
+        "lince/bin/" .. OutputDir .. "/glfw",
+        "lince/bin/" .. OutputDir .. "/cglm",
+        "lince/bin/" .. OutputDir .. "/nuklear",
+        "lince/bin/" .. OutputDir .. "/stb",
+        "lince/bin/" .. OutputDir .. "/miniaudio",
+    }
 
     
 project "mcommand"
@@ -43,6 +53,8 @@ project "mcommand"
     language "C"
     staticruntime "on"
     location "mcommand"
+
+    defines {"LINCE_DIR=\"lince/\""}
     
     targetdir ("bin/" .. OutputDir .. "/%{prj.name}")
     objdir ("obj/" .. OutputDir .. "/%{prj.name}")
@@ -71,5 +83,13 @@ project "mcommand"
         "stb"
     }
 
-    libdirs {"bin/" .. OutputDir .. "/lince"}
+    libdirs {
+        "lince/bin/" .. OutputDir .. "/lince",
+        "lince/bin/" .. OutputDir .. "/glad",
+        "lince/bin/" .. OutputDir .. "/glfw",
+        "lince/bin/" .. OutputDir .. "/cglm",
+        "lince/bin/" .. OutputDir .. "/nuklear",
+        "lince/bin/" .. OutputDir .. "/stb",
+        "lince/bin/" .. OutputDir .. "/miniaudio",
+    }
 

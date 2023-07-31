@@ -1,12 +1,11 @@
 
-
-include "lince"
-
 workspace "lince-games"
     architecture "x86_64"
     startproject "pong"
     warnings "Extra"
 
+    defines {"LINCE_DIR=\"lince/\""}
+    
     configurations {"Debug", "Release"}
     filter "system:windows"
         systemversion "latest"
@@ -26,4 +25,6 @@ workspace "lince-games"
         optimize "on"
         defines {"LINCE_RELEASE"}
 
-    include "projects.lua"
+    include "lince/deps.lua"
+    include "lince/projects.lua"
+    include "games.lua"
