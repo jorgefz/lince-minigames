@@ -38,7 +38,7 @@ typedef struct GameLayer{
 void DrawText(
 		LinceUILayer* ui,
 		float x,	/* X position of top-left corner */
-		float y,	/* X position of top-left corner */
+		float y,	/* Y position of top-left corner */
 		float w,	/* Width of text box */
 		float h,	/* Height of text box */
 		int font,	/* Text font */
@@ -92,7 +92,7 @@ void MovePaddle(GameObject* pad, float dy, float ymin, float ymax){
 }
 
 void MoveBall(GameObject* ball, float dt, float xmin, float xmax, float ymin, float ymax){
-	GameLayer* data = LinceGetCurrentLayer()->data;
+	GameLayer* data = LinceGetAppState()->user_data;
 	
 	// x direction
 	enum {LEFT, RIGHT};
@@ -139,14 +139,14 @@ void MoveBall(GameObject* ball, float dt, float xmin, float xmax, float ymin, fl
 }
 
 void ResetGame(){
-	GameLayer* data = LinceGetCurrentLayer()->data;
+	GameLayer* data = LinceGetAppState()->user_data;
 	data->ball.x = 0.0f;
 	data->ball.y = 0.0f;
 	data->new_game = LinceTrue;
 }
 
 void CheckPaddleCollision(){
-	GameLayer* data = LinceGetCurrentLayer()->data;
+	GameLayer* data = LinceGetAppState()->user_data;
 	int contact;
 
 	switch (data->ball_state) {
@@ -177,17 +177,15 @@ void CheckPaddleCollision(){
 	}
 }
 
-LinceLayer* GameLayerInit(){
-	LinceLayer* layer = LinceCreateLayer(NULL);
 
-	layer->OnAttach = GameLayerOnAttach;
-	layer->OnUpdate = GameLayerOnUpdate;
-	layer->OnEvent = GameLayerOnEvent;
-	layer->OnDetach = GameLayerOnDetach;
-	layer->data = calloc(1, sizeof(GameLayer));
-	LINCE_ASSERT_ALLOC(layer->data, sizeof(GameLayer));
+/*******************
+*	PUBLIC API     *
+********************/
 
-	GameLayer* data = layer->data;
+void PongInit(){
+
+	GameLayer* data = LinceCalloc(sizeof(GameLayer));
+	LinceGetAppState()->user_data = data;
 
 	ma_engine_init(NULL, &data->audio_engine);
 
@@ -218,11 +216,6 @@ LinceLayer* GameLayerInit(){
 	memmove(&data->rpad, &rpad, sizeof(GameObject));
 	memmove(&data->lpad, &lpad, sizeof(GameObject));
 
-	return layer;
-}
-
-void GameLayerOnAttach(LinceLayer* layer){
-	GameLayer* data = layer->data;
 	data->cam = LinceCreateCamera(LinceGetAspectRatio());
 	data->ball_tex = LinceCreateTexture("PongBall", "pong/assets/pong_ball.png");
 	data->pad_tex  = LinceCreateTexture("PongBall", "pong/assets/pong_pad.png");
@@ -231,8 +224,10 @@ void GameLayerOnAttach(LinceLayer* layer){
 	data->ball.vy = 2e-3f;
 }
 
-void GameLayerOnUpdate(LinceLayer* layer, float dt){
-	GameLayer* data = layer->data;
+void PongOnUpdate(float dt){
+	LinceCheckErrors();
+	
+	GameLayer* data = LinceGetAppState()->user_data;
 	LinceUILayer* ui = LinceGetAppState()->ui;
 	const float width = (float)LinceGetAppState()->window->width;
 	const float height = (float)LinceGetAppState()->window->height;
@@ -308,13 +303,12 @@ void GameLayerOnUpdate(LinceLayer* layer, float dt){
 	LinceEndScene();
 }
 
-void GameLayerOnEvent(LinceLayer* layer, LinceEvent* event){
-	LINCE_UNUSED(layer);
+void PongOnEvent(LinceEvent* event){
 	LINCE_UNUSED(event);
 }
 
-void GameLayerOnDetach(LinceLayer* layer){
-	GameLayer* data = layer->data;
+void PongQuit(){
+	GameLayer* data = LinceGetAppState()->user_data;
 	LinceDeleteTexture(data->ball_tex);
 	LinceDeleteTexture(data->pad_tex);
 	LinceDeleteCamera(data->cam);

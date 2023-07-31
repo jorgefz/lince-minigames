@@ -23,10 +23,15 @@
 #include "lince.h"
 
 /* Layer */
-LinceLayer* GameLayerInit();
-void GameLayerOnAttach(LinceLayer* layer);
-void GameLayerOnUpdate(LinceLayer* layer, float dt);
-void GameLayerOnEvent (LinceLayer* layer, LinceEvent* event);
-void GameLayerOnDetach(LinceLayer* layer);
+// LinceLayer* GameLayerInit();
+// void GameLayerOnAttach(LinceLayer* layer);
+// void GameLayerOnUpdate(LinceLayer* layer, float dt);
+// void GameLayerOnEvent (LinceLayer* layer, LinceEvent* event);
+// void GameLayerOnDetach(LinceLayer* layer);
+
+void PongInit();
+void PongOnUpdate(float dt);
+void PongOnEvent(LinceEvent* e);
+void PongQuit();
 
 #endif /* PONG_H */
