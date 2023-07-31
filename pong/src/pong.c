@@ -19,19 +19,19 @@ typedef struct GameLayer{
 	LinceCamera* cam; // camera
 	LinceTexture *ball_tex, *pad_tex; // Textures
 	GameObject ball, lpad, rpad;
+	ma_engine audio_engine;
+
 	float pad_speed;
+	vec2 ball_vxlim;
+	vec2 ball_vylim;
 
 	/* Indicates whether ball just collided with left or right bounds */
 	enum Collision ball_state;
-
 	/* Points scored by the players */
 	int lscore, rscore;
-
 	/* Indicate whether game is paused or not */
 	LinceBool paused, new_game;
-
-	ma_engine audio_engine;
-
+	
 } GameLayer;
 
 
@@ -183,46 +183,43 @@ void CheckPaddleCollision(){
 ********************/
 
 void PongInit(){
+	srand(time(NULL));
 
-	GameLayer* data = LinceCalloc(sizeof(GameLayer));
+	// Initial state
+	GameLayer game_data = {
+		.ball_state = NO_COLLISION,
+		.lscore     = 0,
+		.rscore     = 0,
+		.paused     = LinceFalse,
+		.new_game   = LinceTrue,
+		.pad_speed  = 2e-3f,
+		.ball_vxlim = {5e-4, 2e-3},
+		.ball_vylim = {5e-4, 2e-3},
+		.ball = (GameObject){
+			.w = 0.1f, .h = 0.1f,
+			.x = 0.0f, .y = 0.0f,
+		},
+		.lpad = (GameObject){
+			.w = 0.2f, .h = 0.5f,
+			.x = -1.4f, .y = 0.0f,
+			.vx = 0.0f, .vy = 0.0f
+		},
+		.rpad = (GameObject){
+			.w = 0.2f, .h = 0.5f,
+			.x = 1.4f, .y = 0.0f,
+			.vx = 0.0f, .vy = 0.0f
+		},
+		.cam = LinceCreateCamera(LinceGetAspectRatio()),
+		.ball_tex = LinceLoadTexture("PongBall", "pong/assets/pong_ball.png", 0),
+		.pad_tex = LinceLoadTexture("PongPad", "pong/assets/pong_pad.png", 0),
+
+	};
+
+	GameLayer* data = LinceNewCopy(&game_data, sizeof(GameLayer));
 	LinceGetAppState()->user_data = data;
-
 	ma_engine_init(NULL, &data->audio_engine);
-
-	data->ball_state = NO_COLLISION;
-	data->lscore = 0;
-	data->rscore = 0;
-	data->paused = LinceFalse;
-	data->new_game = LinceTrue;
-	data->pad_speed = 2e-3f;
-
-	static GameObject ball = {
-		.w = 0.1f, .h = 0.1f,
-		.x = 0.0f, .y = 0.0f,
-		.vx = 0.0f, .vy = 0.0f
-	};
-	static GameObject lpad = {
-		.w = 0.2f, .h = 0.5f,
-		.x = -1.4f, .y = 0.0f,
-		.vx = 0.0f, .vy = 0.0f
-	};
-	static GameObject rpad = {
-		.w = 0.2f, .h = 0.5f,
-		.x = 1.4f, .y = 0.0f,
-		.vx = 0.0f, .vy = 0.0f
-	};
-
-	memmove(&data->ball, &ball, sizeof(GameObject));
-	memmove(&data->rpad, &rpad, sizeof(GameObject));
-	memmove(&data->lpad, &lpad, sizeof(GameObject));
-
-	data->cam = LinceCreateCamera(LinceGetAspectRatio());
-	data->ball_tex = LinceCreateTexture("PongBall", "pong/assets/pong_ball.png");
-	data->pad_tex  = LinceCreateTexture("PongBall", "pong/assets/pong_pad.png");
-
-	data->ball.vx = 1e-3f; // randomize initial speed and direction
-	data->ball.vy = 2e-3f;
 }
+
 
 void PongOnUpdate(float dt){
 	LinceCheckErrors();
@@ -238,18 +235,25 @@ void PongOnUpdate(float dt){
 
 	// update pause state
 	if(data->new_game){
-		DrawText(ui, width/2-150, height/2+60, 300, 50, LinceFont_Droid30, "NewGame", " PRESS SPACE TO START ");
-
+		DrawText(ui, width/2-150, height/2+60, 300, 50,
+			LinceFont_Droid30, "NewGame", " PRESS SPACE TO START ");
 		if(LinceIsKeyPressed(LinceKey_Space)){
 			data->new_game = LinceFalse;
+			// Randomize ball speed
+			data->ball.vx = data->ball_vxlim[0] + (rand()/(float)RAND_MAX) * (data->ball_vxlim[1] - data->ball_vxlim[0]);
+			data->ball.vy = data->ball_vylim[0] + (rand()/(float)RAND_MAX) * (data->ball_vylim[1] - data->ball_vylim[0]);
+			// Randomize direction
+			data->ball.vx *= (rand() > RAND_MAX/2) ? (-1) : 1;
+			data->ball.vy *= (rand() > RAND_MAX/2) ? (-1) : 1; 
 		}
 	
 	} else if (data->paused) {
-		DrawText(ui, width/2-150, height/2+60, 300, 50, LinceFont_Droid30, "ResumeGame", " PRESS SPACE TO RESUME ");
-
+		DrawText(ui, width/2-150, height/2+60, 300, 50,
+			LinceFont_Droid30, "ResumeGame", " PRESS SPACE TO RESUME ");
 		if(LinceIsKeyPressed(LinceKey_Space)){
 			data->paused = LinceFalse;
 		}
+
 	} else {
 		if(LinceIsKeyPressed(LinceKey_p)){
 			data->paused = LinceTrue;
