@@ -63,7 +63,7 @@ void MovePaddle(GameObject* pad, float dy, float ymin, float ymax){
 }
 
 void MoveBall(GameObject* ball, float dt, float xmin, float xmax, float ymin, float ymax){
-	GameLayer* data = LinceGetLayerData(LinceGetCurrentLayer());
+	GameLayer* data = LinceGetCurrentLayer()->data;
 	
 	// x direction
 	enum {LEFT, RIGHT};
@@ -110,14 +110,14 @@ void MoveBall(GameObject* ball, float dt, float xmin, float xmax, float ymin, fl
 }
 
 void ResetGame(){
-	GameLayer* data = LinceGetLayerData(LinceGetCurrentLayer());
+	GameLayer* data = LinceGetCurrentLayer()->data;
 	data->ball.x = 0.0f;
 	data->ball.y = 0.0f;
 	data->new_game = LinceTrue;
 }
 
 void CheckPaddleCollision(){
-	GameLayer* data = LinceGetLayerData(LinceGetCurrentLayer());
+	GameLayer* data = LinceGetCurrentLayer()->data;
 	int contact;
 
 	switch (data->ball_state) {
@@ -193,7 +193,7 @@ LinceLayer* GameLayerInit(){
 }
 
 void GameLayerOnAttach(LinceLayer* layer){
-	GameLayer* data = LinceGetLayerData(layer);
+	GameLayer* data = layer->data;
 	data->cam = LinceCreateCamera(LinceGetAspectRatio());
 	data->ball_tex = LinceCreateTexture("PongBall", "pong/assets/pong_ball.png");
 	data->pad_tex  = LinceCreateTexture("PongBall", "pong/assets/pong_pad.png");
@@ -203,7 +203,7 @@ void GameLayerOnAttach(LinceLayer* layer){
 }
 
 void GameLayerOnUpdate(LinceLayer* layer, float dt){
-	GameLayer* data = LinceGetLayerData(layer);
+	GameLayer* data = layer->data;
 	LinceUILayer* ui = LinceGetAppState()->ui;
 	const float width = (float)LinceGetAppState()->window->width;
 	const float height = (float)LinceGetAppState()->window->height;
@@ -264,26 +264,26 @@ void GameLayerOnUpdate(LinceLayer* layer, float dt){
 	// draw paddles and ball
 	LinceBeginScene(data->cam);
 
-	LinceDrawQuad((LinceQuadProps){
+	LinceDrawSprite(&(LinceSprite){
 		.x = data->ball.x, .y = data->ball.y,
 		.w = data->ball.w, .h = data->ball.h,
 		.color = {0.0, 1.0, 0.0, 1.0},
 		.texture = data->ball_tex
-	});
+	}, NULL);
 
-	LinceDrawQuad((LinceQuadProps){
+	LinceDrawSprite(&(LinceSprite){
 		.x = data->lpad.x, .y = data->lpad.y,
 		.w = data->lpad.w, .h = data->lpad.h,
 		.color = {0.0, 0.0, 1.0, 1.0},
 		.texture = data->pad_tex
-	});
+	}, NULL);
 
-	LinceDrawQuad((LinceQuadProps){
+	LinceDrawSprite(&(LinceSprite){
 		.x = data->rpad.x, .y = data->rpad.y,
 		.w = data->rpad.w, .h = data->rpad.h,
 		.color = {1.0, 0.0, 0.0, 1.0},
 		.texture = data->pad_tex
-	});
+	}, NULL);
 
 	LinceEndScene();
 }
@@ -294,7 +294,7 @@ void GameLayerOnEvent(LinceLayer* layer, LinceEvent* event){
 }
 
 void GameLayerOnDetach(LinceLayer* layer){
-	GameLayer* data = LinceGetLayerData(layer);
+	GameLayer* data = layer->data;
 	LinceDeleteTexture(data->ball_tex);
 	LinceDeleteTexture(data->pad_tex);
 	LinceDeleteCamera(data->cam);
