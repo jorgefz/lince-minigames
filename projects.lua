@@ -1,10 +1,5 @@
 
 
-
-----------------------------
---------- MINIGAMES --------
-----------------------------
-
 project "pong"
     kind "ConsoleApp"
     language "C"
@@ -60,11 +55,11 @@ project "mcommand"
     includedirs {
         "%{prj.name}",
         "%{prj.name}/src",
-        "%{IncludeDir.lince}",
-        "%{IncludeDir.glfw}",
-        "%{IncludeDir.glad}",
-        "%{IncludeDir.cglm}",
-        "%{IncludeDir.nuklear}"
+        "lince/%{IncludeDir.lince}",
+        "lince/%{IncludeDir.glfw}",
+        "lince/%{IncludeDir.glad}",
+        "lince/%{IncludeDir.cglm}",
+        "lince/%{IncludeDir.nuklear}"
     }
 
     links {

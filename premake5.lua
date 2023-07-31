@@ -1,7 +1,10 @@
 
-workspace "lince"
+
+include "lince"
+
+workspace "lince-games"
     architecture "x86_64"
-    startproject "editor"
+    startproject "pong"
     warnings "Extra"
 
     configurations {"Debug", "Release"}
@@ -23,6 +26,4 @@ workspace "lince"
         optimize "on"
         defines {"LINCE_RELEASE"}
 
-    --include "lince/deps.lua"
-    include "lince"
     include "projects.lua"
