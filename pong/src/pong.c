@@ -35,6 +35,35 @@ typedef struct GameLayer{
 } GameLayer;
 
 
+void DrawText(
+		LinceUILayer* ui,
+		float x,	/* X position of top-left corner */
+		float y,	/* X position of top-left corner */
+		float w,	/* Width of text box */
+		float h,	/* Height of text box */
+		int font,	/* Text font */
+		const char* name,		/* Unique name for the textbox */
+		const char* fmt, ...	/* Formatted text and arguments */
+	){
+	
+	struct nk_context *ctx = ui->ctx;
+	nk_style_set_font(ctx, &ui->fonts[font]->handle);
+	struct nk_style *s = &ctx->style;
+	nk_style_push_color(ctx, &s->window.background, nk_rgba(0,0,0,0));
+	nk_style_push_style_item(ctx, &s->window.fixed_background, nk_style_item_color(nk_rgba(0,0,0,0)));
+	if (nk_begin(ctx, name, nk_rect(x, y, w*1.5, h*1.5), 0)
+	) {
+		nk_layout_row_static(ctx, h, w, 1);
+		va_list args;
+		va_start(args, fmt);
+		nk_labelfv(ctx, NK_TEXT_ALIGN_CENTERED, fmt, args);
+		va_end(args);
+	}
+	nk_end(ctx);
+	nk_style_pop_color(ctx);
+	nk_style_pop_style_item(ctx);
+}
+
 void PlayBallBounceSound(GameLayer* data){
 	ma_result res = ma_engine_play_sound(&data->audio_engine,
 		"pong/assets/ball-single-bounce-concrete.wav",
@@ -214,22 +243,15 @@ void GameLayerOnUpdate(LinceLayer* layer, float dt){
 
 	// update pause state
 	if(data->new_game){
-		LinceUIText(ui, "NewGame", 
-			(float)width/2.0f-170,
-			(float)height/2.0f+60,
-			LinceFont_Droid30, 50,
-			" PRESS SPACE TO START "
-		);
+		DrawText(ui, width/2-150, height/2+60, 300, 50, LinceFont_Droid30, "NewGame", " PRESS SPACE TO START ");
+
 		if(LinceIsKeyPressed(LinceKey_Space)){
 			data->new_game = LinceFalse;
 		}
+	
 	} else if (data->paused) {
-		LinceUIText(ui, "Paused",
-			(float)width/2.0f-160,
-			(float)height/2.0f+60,
-			LinceFont_Droid30, 50,
-			" PRESS SPACE TO RESUME "
-		);
+		DrawText(ui, width/2-150, height/2+60, 300, 50, LinceFont_Droid30, "ResumeGame", " PRESS SPACE TO RESUME ");
+
 		if(LinceIsKeyPressed(LinceKey_Space)){
 			data->paused = LinceFalse;
 		}
@@ -255,13 +277,11 @@ void GameLayerOnUpdate(LinceLayer* layer, float dt){
 		CheckPaddleCollision();
 	}
 
-	// print debug FPS
-	LinceUIText(ui, "LScore",  60       , 20, LinceFont_Droid50, 10, "  %d  ",  data->lscore);
-	LinceUIText(ui, "RScore",  width-130, 20, LinceFont_Droid50, 10, "  %d  ",  data->rscore);
-    LinceUIText(ui, "FPS_text", 10, height - 70, LinceFont_Droid30, 10, "FPS %.0f", 1000.0/dt);
-    LinceUIText(ui, "dt_text",  10, height - 40, LinceFont_Droid30, 10, "%.2f ms",  dt);
+	// Print scores
+	DrawText(ui, 20,       20, 40, 40, LinceFont_Droid50, "LScore", "%d", data->lscore);
+	DrawText(ui, width-60, 20, 40, 40, LinceFont_Droid50, "RScore", "%d", data->rscore);
 
-	// draw paddles and ball
+	// Draw paddles and ball
 	LinceBeginScene(data->cam);
 
 	LinceDrawSprite(&(LinceSprite){
