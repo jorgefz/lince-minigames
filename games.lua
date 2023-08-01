@@ -6,8 +6,6 @@ project "pong"
     staticruntime "on"
     location "pong"
 
-    defines {"LINCE_DIR=\"lince/\""}
-
     targetdir ("bin/" .. OutputDir .. "/%{prj.name}")
     objdir ("obj/" .. OutputDir .. "/%{prj.name}")
 
@@ -54,8 +52,6 @@ project "mcommand"
     staticruntime "on"
     location "mcommand"
 
-    defines {"LINCE_DIR=\"lince/\""}
-    
     targetdir ("bin/" .. OutputDir .. "/%{prj.name}")
     objdir ("obj/" .. OutputDir .. "/%{prj.name}")
 
