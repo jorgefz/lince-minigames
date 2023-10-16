@@ -29,4 +29,6 @@ workspace "minigames"
 
     group "games"
         include "example"
+        include "pong"
+        include "mcommand"
     group ""
