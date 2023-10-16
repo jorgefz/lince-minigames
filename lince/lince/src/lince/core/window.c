@@ -4,6 +4,7 @@
 
 #include "core/core.h"
 #include "core/window.h"
+#include "core/memory.h"
 
 #include "event/event.h"
 #include "event/key_event.h"
@@ -37,15 +38,16 @@ static void LinceInitGLContext(GLFWwindow* handle){
 
 /* Public API */
 
-/// TODO: third argument bit flags for fullscreen, vsync, etc
-LinceWindow* LinceCreateWindow(unsigned int width, unsigned int height, const char* title){
+LinceWindow* LinceCreateWindow(uint32_t width, uint32_t height, const char* title){
 
     LINCE_ASSERT(glfwInit(), "Failed to initialise GLFW");
     
     /* Using OpenGL 4.0 */
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, LINCE_GL_VERSION_MAJOR);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, LINCE_GL_VERSION_MINOR);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    glfwSetErrorCallback(GLFWErrorCallback);
     
     GLFWwindow* handle = glfwCreateWindow(width, height, title, NULL, NULL);
     if (!handle) {
@@ -62,9 +64,7 @@ LinceWindow* LinceCreateWindow(unsigned int width, unsigned int height, const ch
     glfwGetVersion(&glfw_major, &glfw_minor, &glfw_rev);
     LINCE_INFO("GLFW Version %d.%d.%d", glfw_major, glfw_minor, glfw_rev);
 
-    LinceWindow* window = malloc(sizeof(LinceWindow));
-    LINCE_ASSERT(window, "Failed to allocate memory");
-
+    LinceWindow* window = LinceMalloc(sizeof(LinceWindow));
     *window = (LinceWindow){
         .handle = handle,
         .height = height,
@@ -75,14 +75,12 @@ LinceWindow* LinceCreateWindow(unsigned int width, unsigned int height, const ch
     };
 
     glfwSetWindowUserPointer((GLFWwindow*)window->handle, window);
-    glfwSetErrorCallback(GLFWErrorCallback);
-
     SetGLFWCallbacks(window);
 
     return window;
 }
 
-unsigned int LinceShouldCloseWindow(LinceWindow* window){
+uint32_t LinceShouldCloseWindow(LinceWindow* window){
     return glfwWindowShouldClose((GLFWwindow*)(window->handle));
 }
 
@@ -95,7 +93,7 @@ void LinceDestroyWindow(LinceWindow* window){
     glfwSetErrorCallback(NULL); // otherwise GLFW throws an error on shutdown
     if (window->initialised) glfwTerminate();
     if (window->handle) glfwDestroyWindow((GLFWwindow*)(window->handle));
-	free(window);
+	LinceFree(window);
 }
 
 void LinceSetMainEventCallback(LinceWindow* window, LinceEventCallbackFn func){
@@ -112,8 +110,8 @@ static void WindowResizeCallback(GLFWwindow* wptr, int width, int height){
     glViewport(0, 0, width, height);
     
     LinceWindow* w = (LinceWindow*)glfwGetWindowUserPointer(wptr);
-    w->width = (unsigned int)width;
-    w->height = (unsigned int)height;
+    w->width = (uint32_t)width;
+    w->height = (uint32_t)height;
 
     LinceEvent e = LinceNewWindowResizeEvent(width, height);
     if (w->event_callback) w->event_callback(&e);
@@ -132,13 +130,13 @@ static void KeyCallback(GLFWwindow* wptr, int key, int scancode, int action, int
     LinceEvent e;
     switch (action) {
         case GLFW_PRESS:
-            e = LinceNewKeyPressedEvent(key, 0);
+            e = LinceNewKeyPressEvent(key, 0);
             break;
         case GLFW_RELEASE:
-            e = LinceNewKeyReleasedEvent(key);
+            e = LinceNewKeyReleaseEvent(key);
             break;
         case GLFW_REPEAT:
-            e = LinceNewKeyPressedEvent(key, 1);
+            e = LinceNewKeyPressEvent(key, 1);
             break;
         default:
             LINCE_ASSERT(0, "Invalid KeyCallback action\n");
@@ -150,7 +148,7 @@ static void KeyCallback(GLFWwindow* wptr, int key, int scancode, int action, int
     LINCE_UNUSED(mods);
 }
 
-static void CharCallback(GLFWwindow* wptr, unsigned int key_typed){
+static void CharCallback(GLFWwindow* wptr, uint32_t key_typed){
     LinceWindow* w = (LinceWindow*)glfwGetWindowUserPointer(wptr);
     LinceEvent e = LinceNewKeyTypeEvent(key_typed);
     if (w->event_callback) w->event_callback(&e);
@@ -162,11 +160,11 @@ static void MouseButtonCallback(GLFWwindow* wptr, int button, int action, int mo
     LinceEvent e;
     switch (action) {
         case GLFW_PRESS: {
-            e = LinceNewMouseButtonPressedEvent(button);
+            e = LinceNewMousePressEvent(button);
             break;
         }
         case GLFW_RELEASE: {
-            e = LinceNewMouseButtonReleasedEvent(button);
+            e = LinceNewMouseReleaseEvent(button);
             break;
         }
         default:
@@ -180,14 +178,14 @@ static void MouseButtonCallback(GLFWwindow* wptr, int button, int action, int mo
 
 static void MouseScrolledCallback(GLFWwindow* wptr, double xoff, double yoff){
     LinceWindow* w = (LinceWindow*)glfwGetWindowUserPointer(wptr);
-    LinceEvent e = LinceNewMouseScrolledEvent(xoff, yoff);
+    LinceEvent e = LinceNewMouseScrollEvent(xoff, yoff);
     if (w->event_callback) w->event_callback(&e);
     LinceEndEvent(&e);
 }
 
 static void MouseMovedCallback(GLFWwindow* wptr, double xpos, double ypos){
     LinceWindow* w = (LinceWindow*)glfwGetWindowUserPointer(wptr);
-    LinceEvent e = LinceNewMouseMovedEvent(xpos, ypos);
+    LinceEvent e = LinceNewMouseMoveEvent(xpos, ypos);
     if (w->event_callback) w->event_callback(&e);
     LinceEndEvent(&e);
 }

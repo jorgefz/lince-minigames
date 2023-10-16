@@ -1,57 +1,72 @@
+/** @file layer.h
+* Example code:
+* ```c
+*	void MyLayerOnAttach(LinceLayer* layer){
+*	    printf("MyLayer attached\n");
+*	}
+* 
+*	void MyLayerOnDetach(LinceLayer* layer){
+*	    printf("MyLayer detached\n");
+*	}
+*
+*	void MyLayerOnUpdate(LinceLayer* layer, float dt){
+*	 
+*	}
+* 
+*	void MyLayerOnEvent(LinceLayer* layer, LinceEvent* e){
+*	
+*	}
+*  
+*	void GameInit(){
+*		LinceLayer layer = {
+*			.on_attach = MyLayerOnAttach,
+*			.on_detach = MyLayerOnDetach,
+*			.on_update = MyLayerOnUpdate,
+*			.on_event  = MyLayerOnEvent
+*		}
+*		LincePushLayer(&layer);
+*	}
+* 
+*	int main(){
+*		LinceApp* app = LinceGetApp();
+*		app->on_init = GameInit;
+*		LinceRun();
+*		return 0;
+*	}
+* ```
+*/
+
 #ifndef LINCE_LAYER_H
 #define LINCE_LAYER_H
 
 #include "lince/event/event.h"
+#include "lince/core/uuid.h"
 
-typedef void* LinceLayerData;
-
-typedef struct LinceLayer {
-	// custom user layer pointer
-	LinceLayerData data;
-	/// TODO: add debug name?
-
-	// callbacks
-	/* Called when layer is pushed onto stack */
-	void (*OnAttach)(struct LinceLayer*);
-	/* Called when layer is popped from stack,
-	should free the user layer but not the LinceLayer itself */
-	void (*OnDetach)(struct LinceLayer*);
-	/* called on each game frame */
-	void (*OnUpdate)(struct LinceLayer*, float dt);
-	/* called only when an event takes place and hasn't been handled yet */
-	void (*OnEvent)(struct LinceLayer*, LinceEvent*);
-} LinceLayer;
-
-/* Creates new layer using custom data passed to it */
-LinceLayer* LinceCreateLayer(void* data);
-
-/* Retrieves pointer to user-defined layer */
-void* LinceGetLayerData(LinceLayer* layer);
-
-/* Layer stack stored as array of pointers */
-typedef struct LinceLayerStack {
-	LinceLayer** layers;
-	unsigned int count;
-} LinceLayerStack;
-
-/*
-	Since LayerStack stores layers as an array of pointers,
-	you must pass a pointer to a previously allocated layer
-	and not free it, as the layer will be destroyed
-	when the stack is popped or destroyed.
+/** @struct LinceLayer
+* @brief Stores geometry that is generally rendered together.
+* 
+* Layers are important to separate the rendering process into steps,
+* with the geometry on each having different properties, roles,
+* and being rendered in a different order.
+* Some layers are rendered over others, such as UI over game world.
+* @todo add debug name?
 */
+typedef struct LinceLayer {
+	
+	void* data; ///< custom user layer pointer
 
-/* Initialises an empty layer stack */
-LinceLayerStack* LinceCreateLayerStack();
-
-/* Detaches and frees all layers */
-void LinceDestroyLayerStack(LinceLayerStack*);
-
-/* Adds a layer to the stack */
-void LinceLayerStackPush(LinceLayerStack*, LinceLayer*);
-
-/* Removes a layer from the top of the stack */
-void LinceLayerStackPop(LinceLayerStack*, LinceLayer*);
+	void (*on_attach)(struct LinceLayer*);
+	///< Called when layer is pushed onto stack
+	
+	void (*on_detach)(struct LinceLayer*);
+	///< Called when layer is popped from stack. Should only free user data
+	
+	void (*on_update)(struct LinceLayer*, float dt);
+	///< Called on each game frame
+	
+	void (*on_event)(struct LinceLayer*, LinceEvent*);
+	///< called when an event propagates to the layer
+} LinceLayer;
 
 
 #endif // LINCE_LAYER_H

@@ -3,27 +3,50 @@
 
 #include "lince/event/event.h"
 
-typedef struct LinceMouseButtonPressedEvent {
-    int button;
-} LinceMouseButtonPressedEvent;
+/** @struct LinceMousePressEvent
+* @brief Propagated when mouse button is pressed.
+* If a mouse button is held down, the event is propagated repeatedly.
+*/
+typedef struct LinceMousePressEvent {
+    int button; ///< Mouse button code. See `LinceMouseButton`.
+} LinceMousePressEvent;
 
-typedef struct LinceMouseButtonReleasedEvent {
-    int button;
-} LinceMouseButtonReleasedEvent;
+/** @struct LinceMouseReleaseEvent
+* @brief Propagated when mouse button is released.
+* More useful for game click events than mouse press events.
+*/
+typedef struct LinceMouseReleaseEvent {
+    int button; ///< Mouse button code. See `LinceMouseButton`.
+} LinceMouseReleaseEvent;
 
-typedef struct LinceMouseMovedEvent {
-    float xpos, ypos;
-} LinceMouseMovedEvent;
+/** @struct LinceMouseMoveEvent
+* @brief Propagated when the mouse cursor is moved.
+*/
+typedef struct LinceMouseMoveEvent {
+    float xpos; ///< New X coordinate of the mouse on the screen
+    float ypos; ///< New Y coordinate of the mouse on the screen
+} LinceMouseMoveEvent;
 
-typedef struct LinceMouseScrolledEvent {
-    float xoff, yoff;
-} LinceMouseScrolledEvent;
+/** @struct LinceMouseScrollEvent
+* @brief Propagated when the mouse wheel is scrolled
+* or a touchpad gesture is made.
+*/
+typedef struct LinceMouseScrollEvent {
+    float xoff; ///< New X scroll offset. X-axis scrolling possible with a touchpad.
+    float yoff; ///< New Y scroll offset. Specific values vary between machines. Typically, negative is down, and positive is up.
+} LinceMouseScrollEvent;
 
-/* Helper functions to create and allocate new events */
-LinceEvent LinceNewMouseButtonPressedEvent(int button);
-LinceEvent LinceNewMouseButtonReleasedEvent(int button);
-LinceEvent LinceNewMouseMovedEvent(double xpos, double ypos);
-LinceEvent LinceNewMouseScrolledEvent(double xoff, double yoff);
+/** @brief Initialises a mouse button press event */
+LinceEvent LinceNewMousePressEvent(int button);
+
+/** @brief Initialises a mouse button release event */
+LinceEvent LinceNewMouseReleaseEvent(int button);
+
+/** @brief Initialises a mouse move event */
+LinceEvent LinceNewMouseMoveEvent(double xpos, double ypos);
+
+/** @brief Initialises a mouse scroll event */
+LinceEvent LinceNewMouseScrollEvent(double xoff, double yoff);
 
 
 #endif // LINCE_MOUSE_EVENT_H

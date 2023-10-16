@@ -8,11 +8,13 @@
 #include "lince/core/layer.h"
 #include "lince/core/app.h"
 #include "lince/core/memory.h"
+#include "lince/core/uuid.h"
+#include "lince/core/fileio.h"
 
 /* Input */
-#include "lince/core/input.h"
-#include "lince/core/keycodes.h"
-#include "lince/core/mousecodes.h"
+#include "lince/input/input.h"
+#include "lince/input/keycodes.h"
+#include "lince/input/mousecodes.h"
 
 /* Events */
 #include "lince/event/event.h"
@@ -32,5 +34,14 @@
 #include "lince/tiles/tileset.h"
 #include "lince/tiles/tile_anim.h"
 #include "lince/tiles/tilemap.h"
+
+/* Audio */
+#include "lince/audio/audio.h"
+
+/* ECS */
+#include "lince/entity/entity.h"
+
+/* Scene */
+#include "lince/scene/scene.h"
 
 #endif //LINCE_H

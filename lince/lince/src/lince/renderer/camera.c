@@ -1,6 +1,7 @@
 #include "renderer/camera.h"
 #include "core/core.h"
 #include "core/profiler.h"
+#include "core/memory.h"
 #include <cglm/cam.h>
 #include <cglm/mat4.h>
 #include <cglm/affine.h>
@@ -25,6 +26,26 @@ void LinceCalculateProjection(
 	glm_ortho(left, right, bottom, top, near, far, result);
 }
 
+
+void LinceInitCamera(LinceCamera* cam, float aspect_ratio){
+	mat4 proj;
+	LinceCalculateProjection(proj, -aspect_ratio, aspect_ratio, -1.0, 1.0);
+	memmove(cam, &default_camera, sizeof(LinceCamera));
+	glm_mat4_copy(proj, cam->proj);
+	glm_mat4_mul(cam->proj, cam->view, cam->view_proj);
+	cam->aspect_ratio = aspect_ratio;
+}
+
+LinceCamera* LinceCreateCameraFromProj(mat4 proj){
+	LINCE_PROFILER_START(timer);
+	LinceCamera *cam;
+	cam = LinceNewCopy(&default_camera, sizeof(LinceCamera));
+	glm_mat4_copy(proj, cam->proj);
+	glm_mat4_mul(cam->proj, cam->view, cam->view_proj);
+	LINCE_PROFILER_END(timer);
+	return cam;
+}
+
 LinceCamera* LinceCreateCamera(float aspect_ratio){
 	LINCE_PROFILER_START(timer);
 	LinceCamera *cam;
@@ -32,18 +53,6 @@ LinceCamera* LinceCreateCamera(float aspect_ratio){
 	LinceCalculateProjection(proj, -aspect_ratio, aspect_ratio, -1.0, 1.0);
 	cam = LinceCreateCameraFromProj(proj);
 	cam->aspect_ratio = aspect_ratio;
-	LINCE_PROFILER_END(timer);
-	return cam;
-}
-
-LinceCamera* LinceCreateCameraFromProj(mat4 proj){
-	LINCE_PROFILER_START(timer);
-	LinceCamera *cam;
-	cam = malloc(sizeof(LinceCamera));
-	LINCE_ASSERT_ALLOC(cam, sizeof(LinceCamera));
-	memcpy(cam, &default_camera, sizeof(LinceCamera));
-	glm_mat4_copy(proj, cam->proj);
-	glm_mat4_mul(cam->proj, cam->view, cam->view_proj);
 	LINCE_PROFILER_END(timer);
 	return cam;
 }
@@ -83,5 +92,5 @@ void LinceResizeCameraView(LinceCamera* cam, float aspect_ratio){
 
 void LinceDeleteCamera(LinceCamera* cam){
 	if(!cam) return;
-	free(cam);
+	LinceFree(cam);
 }

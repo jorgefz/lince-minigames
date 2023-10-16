@@ -1,36 +1,29 @@
 
 #include "editor.h"
-
+#include <time.h>
 #include <lince.h>
 
 
 void SetupApplication(){
-    LinceApp* app = LinceGetAppState();
+    LinceApp* app = LinceGetApp();
 
     // app->user_data = NULL;
-    app->screen_width = 900;
-    app->screen_height = 600;
+    app->screen_width = 1280;
+    app->screen_height = 720;
     app->title = "Sandbox";
     // app->flags = LINCE_FULLSCREEN | LINCE_VSYNC | LINCE_RESIZEABLE | ...
 
-    app->game_init = EditorInit;
-    app->game_on_update = EditorOnUpdate;
-    // app->game_on_event = GameOnEvent;
-    app->game_terminate = EditorTerminate;
-    
-    app->enable_profiling = LinceTrue;
-    app->profiler_filename = "tests/profiling/profile.txt";
+    app->on_init = EditorInit;
+    app->on_update = EditorOnUpdate;
+    app->on_event = EditorOnEvent;
+    app->on_terminate = EditorTerminate;
 }
 
 
 int main(int argc, const char* argv[]) {
-
-    #ifdef LINCE_DEBUG
-    LINCE_INFO(" --- DEBUG MODE --- ");
-    #endif
+    srand(time(NULL));
 
     SetupApplication();
-    
     LinceRun();
     
     LINCE_UNUSED(argc);
