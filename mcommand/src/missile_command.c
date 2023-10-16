@@ -334,7 +334,7 @@ void DrawDebugUI(GameState* data){
 
 void MCommandOnAttach(LinceLayer* layer){
 
-	GameState* data = LinceGetLayerData(layer);
+	GameState* data = layer->data;
 	data->cam = LinceCreateCamera(LinceGetAspectRatio());
 	data->score = 0;
 	data->hp = 100;
@@ -348,10 +348,10 @@ void MCommandOnAttach(LinceLayer* layer){
 	data->xmax = 1.5f;
 	data->dt = 0.0f;
 
-	data->missile_list = array_create(sizeof(GameObject));
-	data->bomb_list    = array_create(sizeof(GameObject));
-	data->marker_list  = array_create(sizeof(GameObject));
-	data->blast_list   = array_create(sizeof(GameObject));
+	array_init(&data->missile_list, sizeof(GameObject));
+	array_init(&data->bomb_list   , sizeof(GameObject));
+	array_init(&data->marker_list , sizeof(GameObject));
+	array_init(&data->blast_list  , sizeof(GameObject));
 
 	data->bomb_timer = (Timer){.start = BOMB_COOLDOWN, .tick = -1.0f, .end = 0.0f};
 	ResetTimer(&data->bomb_timer);
@@ -370,7 +370,7 @@ void MCommandOnAttach(LinceLayer* layer){
 
 void MCommandOnUpdate(LinceLayer* layer, float dt){
 	
-	GameState* data = LinceGetLayerData(layer);
+	GameState* data = layer->data;
 	// LinceUILayer* ui = LinceGetAppState()->ui;
 	data->dt = dt;
 
@@ -397,7 +397,7 @@ void MCommandOnUpdate(LinceLayer* layer, float dt){
 	LinceBeginScene(data->cam);
 
 	// Background
-	LinceDrawQuad((LinceQuadProps){
+	LinceDrawSprite(&(LinceSprite){
 		.x = 0.0f,
 		.y = 0.0f,
 		.w = BKG_WIDTH,
@@ -405,17 +405,17 @@ void MCommandOnUpdate(LinceLayer* layer, float dt){
 		.color = {1.0, 1.0, 1.0, 1.0},
 		.texture = data->bkg_city,
 		.zorder = -0.1f
-	});
+	}, NULL);
 
 	// Cannon
-	LinceDrawQuad((LinceQuadProps){
+	LinceDrawSprite(&(LinceSprite){
 		.x = data->cannon_x,
 		.y = data->cannon_y,
 		.w = 0.05f,
 		.h = 0.2f,
 		.color = {0.5, 0.5, 0.5, 1.0},
 		.rotation = data->angle
-	});
+	}, NULL);
 	
 	DrawEntityList(&data->missile_list);
 	DrawEntityList(&data->bomb_list);
@@ -428,7 +428,7 @@ void MCommandOnUpdate(LinceLayer* layer, float dt){
 
 void MCommandLayerOnEvent(LinceLayer* layer, LinceEvent* event){
 	if(event->type != LinceEventType_MouseButtonPressed) return;
-	GameState* state = LinceGetLayerData(layer);
+	GameState* state = layer->data;
 
 	if(state->missile_timer.finished){
 		CreateMissile(state, state->angle, state->missile_tex);
@@ -441,12 +441,17 @@ void MCommandLayerOnEvent(LinceLayer* layer, LinceEvent* event){
 }
 
 void MCommandOnDetach(LinceLayer* layer){
-	GameState* data = LinceGetLayerData(layer);
+	GameState* data = layer->data;
 
 	DeleteEntityList(&data->missile_list);
 	DeleteEntityList(&data->bomb_list);
 	DeleteEntityList(&data->marker_list);
 	DeleteEntityList(&data->blast_list);
+
+	array_uninit(&data->missile_list);
+	array_uninit(&data->bomb_list);
+	array_uninit(&data->marker_list);
+	array_uninit(&data->blast_list);
 	
 	LinceDeleteCamera(data->cam);
 	LinceDeleteTexture(data->missile_tex);

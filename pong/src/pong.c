@@ -19,21 +19,50 @@ typedef struct GameLayer{
 	LinceCamera* cam; // camera
 	LinceTexture *ball_tex, *pad_tex; // Textures
 	GameObject ball, lpad, rpad;
+	ma_engine audio_engine;
+
 	float pad_speed;
+	vec2 ball_vxlim;
+	vec2 ball_vylim;
 
 	/* Indicates whether ball just collided with left or right bounds */
 	enum Collision ball_state;
-
 	/* Points scored by the players */
 	int lscore, rscore;
-
 	/* Indicate whether game is paused or not */
 	LinceBool paused, new_game;
-
-	ma_engine audio_engine;
-
+	
 } GameLayer;
 
+
+void DrawText(
+		LinceUILayer* ui,
+		float x,	/* X position of top-left corner */
+		float y,	/* Y position of top-left corner */
+		float w,	/* Width of text box */
+		float h,	/* Height of text box */
+		int font,	/* Text font */
+		const char* name,		/* Unique name for the textbox */
+		const char* fmt, ...	/* Formatted text and arguments */
+	){
+	
+	struct nk_context *ctx = ui->ctx;
+	nk_style_set_font(ctx, &ui->fonts[font]->handle);
+	struct nk_style *s = &ctx->style;
+	nk_style_push_color(ctx, &s->window.background, nk_rgba(0,0,0,0));
+	nk_style_push_style_item(ctx, &s->window.fixed_background, nk_style_item_color(nk_rgba(0,0,0,0)));
+	if (nk_begin(ctx, name, nk_rect(x, y, w*1.5, h*1.5), 0)
+	) {
+		nk_layout_row_static(ctx, h, w, 1);
+		va_list args;
+		va_start(args, fmt);
+		nk_labelfv(ctx, NK_TEXT_ALIGN_CENTERED, fmt, args);
+		va_end(args);
+	}
+	nk_end(ctx);
+	nk_style_pop_color(ctx);
+	nk_style_pop_style_item(ctx);
+}
 
 void PlayBallBounceSound(GameLayer* data){
 	ma_result res = ma_engine_play_sound(&data->audio_engine,
@@ -63,7 +92,7 @@ void MovePaddle(GameObject* pad, float dy, float ymin, float ymax){
 }
 
 void MoveBall(GameObject* ball, float dt, float xmin, float xmax, float ymin, float ymax){
-	GameLayer* data = LinceGetLayerData(LinceGetCurrentLayer());
+	GameLayer* data = LinceGetAppState()->user_data;
 	
 	// x direction
 	enum {LEFT, RIGHT};
@@ -110,14 +139,14 @@ void MoveBall(GameObject* ball, float dt, float xmin, float xmax, float ymin, fl
 }
 
 void ResetGame(){
-	GameLayer* data = LinceGetLayerData(LinceGetCurrentLayer());
+	GameLayer* data = LinceGetAppState()->user_data;
 	data->ball.x = 0.0f;
 	data->ball.y = 0.0f;
 	data->new_game = LinceTrue;
 }
 
 void CheckPaddleCollision(){
-	GameLayer* data = LinceGetLayerData(LinceGetCurrentLayer());
+	GameLayer* data = LinceGetAppState()->user_data;
 	int contact;
 
 	switch (data->ball_state) {
@@ -148,62 +177,54 @@ void CheckPaddleCollision(){
 	}
 }
 
-LinceLayer* GameLayerInit(){
-	LinceLayer* layer = LinceCreateLayer(NULL);
 
-	layer->OnAttach = GameLayerOnAttach;
-	layer->OnUpdate = GameLayerOnUpdate;
-	layer->OnEvent = GameLayerOnEvent;
-	layer->OnDetach = GameLayerOnDetach;
-	layer->data = calloc(1, sizeof(GameLayer));
-	LINCE_ASSERT_ALLOC(layer->data, sizeof(GameLayer));
+/*******************
+*	PUBLIC API     *
+********************/
 
-	GameLayer* data = layer->data;
+void PongInit(){
+	srand(time(NULL));
 
+	// Initial state
+	GameLayer game_data = {
+		.ball_state = NO_COLLISION,
+		.lscore     = 0,
+		.rscore     = 0,
+		.paused     = LinceFalse,
+		.new_game   = LinceTrue,
+		.pad_speed  = 2e-3f,
+		.ball_vxlim = {5e-4, 2e-3},
+		.ball_vylim = {5e-4, 2e-3},
+		.ball = (GameObject){
+			.w = 0.1f, .h = 0.1f,
+			.x = 0.0f, .y = 0.0f,
+		},
+		.lpad = (GameObject){
+			.w = 0.2f, .h = 0.5f,
+			.x = -1.4f, .y = 0.0f,
+			.vx = 0.0f, .vy = 0.0f
+		},
+		.rpad = (GameObject){
+			.w = 0.2f, .h = 0.5f,
+			.x = 1.4f, .y = 0.0f,
+			.vx = 0.0f, .vy = 0.0f
+		},
+		.cam = LinceCreateCamera(LinceGetAspectRatio()),
+		.ball_tex = LinceLoadTexture("PongBall", "pong/assets/pong_ball.png", 0),
+		.pad_tex = LinceLoadTexture("PongPad", "pong/assets/pong_pad.png", 0),
+
+	};
+
+	GameLayer* data = LinceNewCopy(&game_data, sizeof(GameLayer));
+	LinceGetAppState()->user_data = data;
 	ma_engine_init(NULL, &data->audio_engine);
-
-	data->ball_state = NO_COLLISION;
-	data->lscore = 0;
-	data->rscore = 0;
-	data->paused = LinceFalse;
-	data->new_game = LinceTrue;
-	data->pad_speed = 2e-3f;
-
-	static GameObject ball = {
-		.w = 0.1f, .h = 0.1f,
-		.x = 0.0f, .y = 0.0f,
-		.vx = 0.0f, .vy = 0.0f
-	};
-	static GameObject lpad = {
-		.w = 0.2f, .h = 0.5f,
-		.x = -1.4f, .y = 0.0f,
-		.vx = 0.0f, .vy = 0.0f
-	};
-	static GameObject rpad = {
-		.w = 0.2f, .h = 0.5f,
-		.x = 1.4f, .y = 0.0f,
-		.vx = 0.0f, .vy = 0.0f
-	};
-
-	memmove(&data->ball, &ball, sizeof(GameObject));
-	memmove(&data->rpad, &rpad, sizeof(GameObject));
-	memmove(&data->lpad, &lpad, sizeof(GameObject));
-
-	return layer;
 }
 
-void GameLayerOnAttach(LinceLayer* layer){
-	GameLayer* data = LinceGetLayerData(layer);
-	data->cam = LinceCreateCamera(LinceGetAspectRatio());
-	data->ball_tex = LinceCreateTexture("PongBall", "pong/assets/pong_ball.png");
-	data->pad_tex  = LinceCreateTexture("PongBall", "pong/assets/pong_pad.png");
 
-	data->ball.vx = 1e-3f; // randomize initial speed and direction
-	data->ball.vy = 2e-3f;
-}
-
-void GameLayerOnUpdate(LinceLayer* layer, float dt){
-	GameLayer* data = LinceGetLayerData(layer);
+void PongOnUpdate(float dt){
+	LinceCheckErrors();
+	
+	GameLayer* data = LinceGetAppState()->user_data;
 	LinceUILayer* ui = LinceGetAppState()->ui;
 	const float width = (float)LinceGetAppState()->window->width;
 	const float height = (float)LinceGetAppState()->window->height;
@@ -214,25 +235,25 @@ void GameLayerOnUpdate(LinceLayer* layer, float dt){
 
 	// update pause state
 	if(data->new_game){
-		LinceUIText(ui, "NewGame", 
-			(float)width/2.0f-170,
-			(float)height/2.0f+60,
-			LinceFont_Droid30, 50,
-			" PRESS SPACE TO START "
-		);
+		DrawText(ui, width/2-150, height/2+60, 300, 50,
+			LinceFont_Droid30, "NewGame", " PRESS SPACE TO START ");
 		if(LinceIsKeyPressed(LinceKey_Space)){
 			data->new_game = LinceFalse;
+			// Randomize ball speed
+			data->ball.vx = data->ball_vxlim[0] + (rand()/(float)RAND_MAX) * (data->ball_vxlim[1] - data->ball_vxlim[0]);
+			data->ball.vy = data->ball_vylim[0] + (rand()/(float)RAND_MAX) * (data->ball_vylim[1] - data->ball_vylim[0]);
+			// Randomize direction
+			data->ball.vx *= (rand() > RAND_MAX/2) ? (-1) : 1;
+			data->ball.vy *= (rand() > RAND_MAX/2) ? (-1) : 1; 
 		}
+	
 	} else if (data->paused) {
-		LinceUIText(ui, "Paused",
-			(float)width/2.0f-160,
-			(float)height/2.0f+60,
-			LinceFont_Droid30, 50,
-			" PRESS SPACE TO RESUME "
-		);
+		DrawText(ui, width/2-150, height/2+60, 300, 50,
+			LinceFont_Droid30, "ResumeGame", " PRESS SPACE TO RESUME ");
 		if(LinceIsKeyPressed(LinceKey_Space)){
 			data->paused = LinceFalse;
 		}
+
 	} else {
 		if(LinceIsKeyPressed(LinceKey_p)){
 			data->paused = LinceTrue;
@@ -255,46 +276,43 @@ void GameLayerOnUpdate(LinceLayer* layer, float dt){
 		CheckPaddleCollision();
 	}
 
-	// print debug FPS
-	LinceUIText(ui, "LScore",  60       , 20, LinceFont_Droid50, 10, "  %d  ",  data->lscore);
-	LinceUIText(ui, "RScore",  width-130, 20, LinceFont_Droid50, 10, "  %d  ",  data->rscore);
-    LinceUIText(ui, "FPS_text", 10, height - 70, LinceFont_Droid30, 10, "FPS %.0f", 1000.0/dt);
-    LinceUIText(ui, "dt_text",  10, height - 40, LinceFont_Droid30, 10, "%.2f ms",  dt);
+	// Print scores
+	DrawText(ui, 20,       20, 40, 40, LinceFont_Droid50, "LScore", "%d", data->lscore);
+	DrawText(ui, width-60, 20, 40, 40, LinceFont_Droid50, "RScore", "%d", data->rscore);
 
-	// draw paddles and ball
+	// Draw paddles and ball
 	LinceBeginScene(data->cam);
 
-	LinceDrawQuad((LinceQuadProps){
+	LinceDrawSprite(&(LinceSprite){
 		.x = data->ball.x, .y = data->ball.y,
 		.w = data->ball.w, .h = data->ball.h,
 		.color = {0.0, 1.0, 0.0, 1.0},
 		.texture = data->ball_tex
-	});
+	}, NULL);
 
-	LinceDrawQuad((LinceQuadProps){
+	LinceDrawSprite(&(LinceSprite){
 		.x = data->lpad.x, .y = data->lpad.y,
 		.w = data->lpad.w, .h = data->lpad.h,
 		.color = {0.0, 0.0, 1.0, 1.0},
 		.texture = data->pad_tex
-	});
+	}, NULL);
 
-	LinceDrawQuad((LinceQuadProps){
+	LinceDrawSprite(&(LinceSprite){
 		.x = data->rpad.x, .y = data->rpad.y,
 		.w = data->rpad.w, .h = data->rpad.h,
 		.color = {1.0, 0.0, 0.0, 1.0},
 		.texture = data->pad_tex
-	});
+	}, NULL);
 
 	LinceEndScene();
 }
 
-void GameLayerOnEvent(LinceLayer* layer, LinceEvent* event){
-	LINCE_UNUSED(layer);
+void PongOnEvent(LinceEvent* event){
 	LINCE_UNUSED(event);
 }
 
-void GameLayerOnDetach(LinceLayer* layer){
-	GameLayer* data = LinceGetLayerData(layer);
+void PongQuit(){
+	GameLayer* data = LinceGetAppState()->user_data;
 	LinceDeleteTexture(data->ball_tex);
 	LinceDeleteTexture(data->pad_tex);
 	LinceDeleteCamera(data->cam);

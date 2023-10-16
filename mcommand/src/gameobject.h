@@ -7,7 +7,7 @@
 #include "collider.h"
 #include "timer.h"
 
-typedef LinceQuadProps Sprite;
+typedef LinceSprite Sprite;
 
 typedef struct GameObject {
 	Collider* collider;

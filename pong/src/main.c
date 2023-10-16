@@ -2,26 +2,17 @@
 #include "pong.h"
 
 
-void InitLayers() {
-	LINCE_INFO("\n Pong Initialised");
-    LincePushLayer(GameLayerInit());
-}
-
-void OnUpdate(float dt) {
-    LinceCheckErrors();
-    LINCE_UNUSED(dt);
-}
-
-
-void SetupAppWindow(){
+void SetupGame(){
     LinceApp* app = LinceGetAppState();
 
     app->screen_width = 900;
     app->screen_height = 600;
     app->title = "Pong";
 
-    app->game_init = InitLayers;
-    app->game_on_update = OnUpdate;
+    app->game_init      = PongInit;
+    app->game_on_update = PongOnUpdate;
+    app->game_on_event  = PongOnEvent;
+    app->game_terminate = PongQuit;
 }
 
 
@@ -31,8 +22,7 @@ int main(int argc, const char* argv[]) {
     LINCE_INFO(" --- DEBUG MODE --- ");
     #endif
 
-    SetupAppWindow();
-    
+    SetupGame();
     LinceRun();
 
     LINCE_UNUSED(argc);

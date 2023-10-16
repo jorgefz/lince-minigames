@@ -3,7 +3,7 @@
 
 void DrawEntity(GameObject* entity){
     if(entity && entity->sprite){
-        LinceDrawQuad(*entity->sprite);
+        LinceDrawSprite(entity->sprite, NULL);
     }
 }
 
@@ -34,5 +34,4 @@ void DeleteEntityList(array_t* list){
 		item = array_get(list, i);
         DeleteEntity(item);
 	}
-	array_destroy(list);
 }

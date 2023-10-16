@@ -8,7 +8,7 @@
 
 typedef struct Marker {
 	float x, y;
-    LinceQuadProps sprite;
+    LinceSprite sprite;
 } Marker;
 
 void PlaceMarker(array_t* marker_list, vec2 position, LinceTexture* texture);
