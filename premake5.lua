@@ -26,3 +26,7 @@ workspace "minigames"
         include "lince/deps/premake5.lua"
         include "lince/lince"
     group ""
+
+    group "games"
+        include "example"
+    group ""
