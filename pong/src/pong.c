@@ -92,7 +92,7 @@ void MovePaddle(GameObject* pad, float dy, float ymin, float ymax){
 }
 
 void MoveBall(GameObject* ball, float dt, float xmin, float xmax, float ymin, float ymax){
-	GameLayer* data = LinceGetAppState()->user_data;
+	GameLayer* data = LinceGetApp()->user_data;
 	
 	// x direction
 	enum {LEFT, RIGHT};
@@ -139,14 +139,14 @@ void MoveBall(GameObject* ball, float dt, float xmin, float xmax, float ymin, fl
 }
 
 void ResetGame(){
-	GameLayer* data = LinceGetAppState()->user_data;
+	GameLayer* data = LinceGetApp()->user_data;
 	data->ball.x = 0.0f;
 	data->ball.y = 0.0f;
 	data->new_game = LinceTrue;
 }
 
 void CheckPaddleCollision(){
-	GameLayer* data = LinceGetAppState()->user_data;
+	GameLayer* data = LinceGetApp()->user_data;
 	int contact;
 
 	switch (data->ball_state) {
@@ -210,24 +210,26 @@ void PongInit(){
 			.vx = 0.0f, .vy = 0.0f
 		},
 		.cam = LinceCreateCamera(LinceGetAspectRatio()),
-		.ball_tex = LinceLoadTexture("PongBall", "pong/assets/pong_ball.png", 0),
-		.pad_tex = LinceLoadTexture("PongPad", "pong/assets/pong_pad.png", 0),
+		.ball_tex = LinceLoadTexture("pong/assets/pong_ball.png", 0),
+		.pad_tex = LinceLoadTexture("pong/assets/pong_pad.png", 0),
 
 	};
 
 	GameLayer* data = LinceNewCopy(&game_data, sizeof(GameLayer));
-	LinceGetAppState()->user_data = data;
+	LinceGetApp()->user_data = data;
 	ma_engine_init(NULL, &data->audio_engine);
+
+    LincePushAssetDir(&LinceGetApp()->asset_manager, "../../../lince/lince/assets");
 }
 
 
 void PongOnUpdate(float dt){
 	LinceCheckErrors();
 	
-	GameLayer* data = LinceGetAppState()->user_data;
-	LinceUILayer* ui = LinceGetAppState()->ui;
-	const float width = (float)LinceGetAppState()->window->width;
-	const float height = (float)LinceGetAppState()->window->height;
+	GameLayer* data = LinceGetApp()->user_data;
+	LinceUILayer* ui = LinceGetApp()->ui;
+	const float width = (float)LinceGetApp()->window->width;
+	const float height = (float)LinceGetApp()->window->height;
 
 	// update view
 	LinceResizeCameraView(data->cam, LinceGetAspectRatio());
@@ -312,7 +314,7 @@ void PongOnEvent(LinceEvent* event){
 }
 
 void PongQuit(){
-	GameLayer* data = LinceGetAppState()->user_data;
+	GameLayer* data = LinceGetApp()->user_data;
 	LinceDeleteTexture(data->ball_tex);
 	LinceDeleteTexture(data->pad_tex);
 	LinceDeleteCamera(data->cam);

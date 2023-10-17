@@ -3,16 +3,16 @@
 
 
 void SetupGame(){
-    LinceApp* app = LinceGetAppState();
+    LinceApp* app = LinceGetApp();
 
     app->screen_width = 900;
     app->screen_height = 600;
-    app->title = "Pong";
+    // app->title = "Pong";
 
-    app->game_init      = PongInit;
-    app->game_on_update = PongOnUpdate;
-    app->game_on_event  = PongOnEvent;
-    app->game_terminate = PongQuit;
+    app->on_init      = PongInit;
+    app->on_update    = PongOnUpdate;
+    app->on_event     = PongOnEvent;
+    app->on_terminate = PongQuit;
 }
 
 

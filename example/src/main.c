@@ -13,6 +13,9 @@ void OnInit() {
 }
 
 void OnUpdate(float dt) {
+	LinceResizeCameraView(camera, LinceGetAspectRatio());
+	LinceUpdateCamera(camera);
+
     LinceBeginScene(camera);
 	LinceDrawSprite(&square, NULL);
     LinceEndScene();
