@@ -185,6 +185,9 @@ void CheckPaddleCollision(){
 void PongInit(){
 	srand(time(NULL));
 
+	LincePushAssetDir(&LinceGetApp()->asset_manager, "../../../lince/lince/assets");
+	LincePushAssetDir(&LinceGetApp()->asset_manager, "../../../pong/assets");
+
 	// Initial state
 	GameLayer game_data = {
 		.ball_state = NO_COLLISION,
@@ -210,16 +213,14 @@ void PongInit(){
 			.vx = 0.0f, .vy = 0.0f
 		},
 		.cam = LinceCreateCamera(LinceGetAspectRatio()),
-		.ball_tex = LinceLoadTexture("pong/assets/pong_ball.png", 0),
-		.pad_tex = LinceLoadTexture("pong/assets/pong_pad.png", 0),
+		.ball_tex = LinceLoadTexture(LinceFetchAssetPath(&LinceGetApp()->asset_manager,"pong_ball.png"), 0),
+		.pad_tex = LinceLoadTexture(LinceFetchAssetPath(&LinceGetApp()->asset_manager,"pong_pad.png"), 0),
 
 	};
 
 	GameLayer* data = LinceNewCopy(&game_data, sizeof(GameLayer));
 	LinceGetApp()->user_data = data;
 	ma_engine_init(NULL, &data->audio_engine);
-
-    LincePushAssetDir(&LinceGetApp()->asset_manager, "../../../lince/lince/assets");
 }
 
 
