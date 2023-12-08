@@ -65,12 +65,12 @@ void DrawText(
 }
 
 void PlayBallBounceSound(GameLayer* data){
-	ma_result res = ma_engine_play_sound(&data->audio_engine,
-		"pong/assets/ball-single-bounce-concrete.wav",
+	ma_result result = ma_engine_play_sound(&data->audio_engine,
+		LinceFetchAssetPath(&LinceGetApp()->asset_manager, "ball-single-bounce-concrete.wav"),
 		NULL
 	);
-	if(res != MA_SUCCESS){
-		printf("Failed to play sound\n");
+	if(result != MA_SUCCESS){
+		LINCE_WARN("Failed to play sound");
 	}
 }
 
@@ -265,7 +265,6 @@ void PongOnUpdate(float dt){
 
 	if (!data->new_game && !data->paused){
 		// update paddle movement
-		// static const float pad_speed = 2e-3f; //  MOVE TO
 		const float pad_speed = data->pad_speed;
 		// -- left paddle
 		if (LinceIsKeyPressed(LinceKey_w)) MovePaddle(&data->lpad, pad_speed*dt, -1.0, 1.0); 
