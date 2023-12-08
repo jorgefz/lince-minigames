@@ -1,19 +1,7 @@
 #include "lince.h"
 #include "missile_command.h"
 
-void GameInit() {
-	LINCE_INFO("\n Pong Initialised");
-    LincePushLayer(MCommandLayerInit());
-}
 
-void GameOnUpdate(float dt) {
-    LinceCheckErrors();
-    LINCE_UNUSED(dt);
-}
-
-void GameTerminate() {
-    LINCE_INFO(" Pong Terminated");
-}
 
 int main(int argc, const char* argv[]) {
 
@@ -21,15 +9,16 @@ int main(int argc, const char* argv[]) {
     LINCE_INFO(" --- DEBUG MODE --- ");
     #endif
 
-    LinceApp* app = LinceGetAppState();
+    LinceApp* app = LinceGetApp();
 
     app->screen_width = 900;
     app->screen_height = 600;
     app->title = "Sandbox";
 
-    app->game_init = GameInit;
-    app->game_on_update = GameOnUpdate;
-    app->game_terminate = GameTerminate;
+    app->on_init = MCommandInit;
+    app->on_update = MCommandUpdate;
+    app->on_event = MCommandOnEvent;
+    app->on_terminate = MCommandTerminate;
     
     LinceRun();
 

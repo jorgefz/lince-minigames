@@ -40,34 +40,6 @@ Notes:
 
 
 
-typedef struct GameState{
-
-	int score, hp;
-	float cannon_x, cannon_y;
-	float missile_vmax;
-	float ymin, ymax;
-	float xmin, xmax;
-	float angle; // cannon angle
-	float dt;    // delta time
-	LinceCamera* cam;
-
-	Timer missile_timer; // how often player is able to launch
-	Timer bomb_timer; // how often to drop bombs
-
-	array_t missile_list;
-	array_t bomb_list;
-	array_t blast_list;  // kill radius generated when missile detonates
-	array_t marker_list; // points where missile is directed
-
-	LinceTexture* missile_tex;
-	LinceTexture* bomb_tex;
-	LinceTexture* blast_tex;
-	LinceTexture* marker_tex;
-	LinceTexture* bkg_city;
-	
-} GameState;
-
-
 float GetRandomFloat(float a, float b) {
     float random = ((float) rand()) / (float) RAND_MAX;
     float diff = b - a;
@@ -309,7 +281,7 @@ void DrawText(struct nk_context *ctx, nk_flags align, const char* text, ...){
 }
 
 void DrawDebugUI(GameState* data){
-	LinceUILayer* ui = LinceGetAppState()->ui;
+	LinceUILayer* ui = LinceGetApp()->ui;
 
 	struct nk_rect size = {.x=50, .y=50, .w=200, .h=300};
 	
@@ -332,9 +304,12 @@ void DrawDebugUI(GameState* data){
 
 // -----------------------
 
-void MCommandOnAttach(LinceLayer* layer){
+void MCommandInit(){
 
-	GameState* data = layer->data;
+	LinceApp* app = LinceGetApp();
+	GameState* data = LinceCalloc(sizeof(GameState));
+	app->user_data = data;
+
 	data->cam = LinceCreateCamera(LinceGetAspectRatio());
 	data->score = 0;
 	data->hp = 100;
@@ -359,19 +334,22 @@ void MCommandOnAttach(LinceLayer* layer){
 	data->missile_timer = (Timer){.start = MISSILE_COOLDOWN, .tick = -1.0f, .end = 0.0f};
 	ResetTimer(&data->missile_timer);
 
-	data->bomb_tex = LinceCreateTexture("Bomb",       "mcommand/assets/bomb.png");
-	data->missile_tex = LinceCreateTexture("Missile", "mcommand/assets/missile.png");
-	data->blast_tex = LinceCreateTexture("Blast",     "mcommand/assets/circle.png");
-	data->marker_tex = LinceCreateTexture("Marker",   "mcommand/assets/marker.png");
-	data->bkg_city = LinceCreateTexture("City",       "mcommand/assets/background-city.png");
+	LincePushAssetDir(&LinceGetApp()->asset_manager, "../../../lince/lince/assets");
+	LincePushAssetDir(&LinceGetApp()->asset_manager, "../../../mcommand/assets");
+
+	data->bomb_tex    = LinceLoadTexture(LinceFetchAssetPath(&LinceGetApp()->asset_manager,"bomb.png"),   LinceTexture_FlipY);
+	data->missile_tex = LinceLoadTexture(LinceFetchAssetPath(&LinceGetApp()->asset_manager,"missile.png"), LinceTexture_FlipY);
+	data->blast_tex   = LinceLoadTexture(LinceFetchAssetPath(&LinceGetApp()->asset_manager,"circle.png"), LinceTexture_FlipY);
+	data->marker_tex  = LinceLoadTexture(LinceFetchAssetPath(&LinceGetApp()->asset_manager,"marker.png"), LinceTexture_FlipY);
+	data->bkg_city    = LinceLoadTexture(LinceFetchAssetPath(&LinceGetApp()->asset_manager,"background-city.png"), LinceTexture_FlipY);
 
 	srand(time(NULL));
 }
 
-void MCommandOnUpdate(LinceLayer* layer, float dt){
+void MCommandUpdate(float dt){
 	
-	GameState* data = layer->data;
-	// LinceUILayer* ui = LinceGetAppState()->ui;
+	GameState* data = LinceGetApp()->user_data;
+	// LinceUILayer* ui = LinceGetApp()->ui;
 	data->dt = dt;
 
 	// update view
@@ -426,22 +404,22 @@ void MCommandOnUpdate(LinceLayer* layer, float dt){
 	LinceSetClearColor(0.0, 0.0, 0.0, 1.0);
 }
 
-void MCommandLayerOnEvent(LinceLayer* layer, LinceEvent* event){
-	if(event->type != LinceEventType_MouseButtonPressed) return;
-	GameState* state = layer->data;
+void MCommandOnEvent(LinceEvent* event){
+	if(event->type != LinceEventType_MousePress) return;
 
-	if(state->missile_timer.finished){
-		CreateMissile(state, state->angle, state->missile_tex);
-		ResetTimer(&state->missile_timer);
+	GameState* data = LinceGetApp()->user_data;
+	if(data->missile_timer.finished){
+		CreateMissile(data, data->angle, data->missile_tex);
+		ResetTimer(&data->missile_timer);
 
 		vec2 mouse;
-		LinceGetMousePosWorld(mouse, state->cam);
-		PlaceMarker(&state->marker_list, mouse, state->marker_tex);
+		LinceGetMousePosWorld(mouse, data->cam);
+		PlaceMarker(&data->marker_list, mouse, data->marker_tex);
 	}
 }
 
-void MCommandOnDetach(LinceLayer* layer){
-	GameState* data = layer->data;
+void MCommandTerminate(){
+	GameState* data = LinceGetApp()->user_data;
 
 	DeleteEntityList(&data->missile_list);
 	DeleteEntityList(&data->bomb_list);
@@ -460,17 +438,4 @@ void MCommandOnDetach(LinceLayer* layer){
 	LinceDeleteTexture(data->marker_tex);
 	LinceDeleteTexture(data->blast_tex);
 	free(data);
-}
-
-LinceLayer* MCommandLayerInit(){
-	LinceLayer* layer = LinceCreateLayer(NULL);
-
-	layer->OnAttach = MCommandOnAttach;
-	layer->OnUpdate = MCommandOnUpdate;
-	layer->OnEvent  = MCommandLayerOnEvent;
-	layer->OnDetach = MCommandOnDetach;
-	layer->data = calloc(1, sizeof(GameState));
-	LINCE_ASSERT_ALLOC(layer->data, sizeof(GameState));
-
-	return layer;
 }
