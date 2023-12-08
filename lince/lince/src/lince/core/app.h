@@ -124,7 +124,7 @@ void LinceGetScreenSize(vec2 size);
 
 /** @brief Transforms a point in space from screen to world coodinates.
 * @param world_pos vec2 that returns the XY position in the world.
-* @param screen_pos vec2 with the XY position in the screen to trasnform.
+* @param screen_pos vec2 with the XY position in the screen to transform.
 * @param camera Camera with an up-to-date inverse view-projection matrix
 */
 void LinceTransformToWorld(vec2 world_pos, vec2 screen_pos, LinceCamera* camera);
