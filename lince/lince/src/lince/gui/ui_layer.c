@@ -60,7 +60,6 @@ void LinceUILoadFonts(LinceUILayer* ui, LinceAssetManager* am){
     //nk_style_set_font(ui->ctx, ui->fonts[LinceFont_Droid20]);
 }
 
-
 void LinceBeginUIRender(LinceUILayer* ui){
 	nk_glfw3_new_frame(ui->glfw);
 }

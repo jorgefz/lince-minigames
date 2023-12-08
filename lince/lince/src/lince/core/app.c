@@ -142,24 +142,23 @@ void LincePopOverlay(LinceLayer* overlay) {
     LINCE_ASSERT(0, "Failed to find overlay (0x%p) in stack", overlay);
 }
 
-void LincePushScene(LinceScene* scene){
-    LINCE_ASSERT(scene, "Pushing NULL scene");
-    array_push_back(&app.scene_stack, scene);
-    app.current_scene = array_back(&app.scene_stack);
-    LinceInitScene(app.current_scene);
+void LinceRegisterScene(const char* name, LinceScene* callbacks) {
+    hashmap_set(&app.scene_cache, name, LinceNewCopy(callbacks, sizeof(LinceScene)) );
 }
 
-void LincePopScene(){
-    LINCE_ASSERT(app.scene_stack.size > 0, "No scenes in stack");
-    LINCE_ASSERT(app.current_scene, "No scenes in stack");
-    LinceUninitScene(app.current_scene);
-    array_pop_back(&app.scene_stack);
-    app.current_scene = array_back(&app.scene_stack);
+void LinceLoadScene(const char* name) {
+     LinceScene* next_scene = hashmap_get(&app.scene_cache, name);
+     LINCE_ASSERT(next_scene, "Could not load scene '%s'", name);
+     app.current_scene = next_scene;
+     if (!app.current_scene->loaded){
+         LinceInitScene(app.current_scene);
+         LINCE_INFO("Initialised scene '%s'", name);
+     }
+     LINCE_INFO("Switched to scene '%s'", name);
 }
 
-
-double LinceGetTimeMillis(){
-    return (glfwGetTime() * 1000.0);
+LinceScene* LinceGetScene(const char* name) {
+    return hashmap_get(&app.scene_cache, name);
 }
 
 float LinceGetAspectRatio(){
@@ -171,19 +170,35 @@ void LinceGetScreenSize(vec2 size){
     size[1] = (float)LinceGetApp()->window->height;
 }
 
-void LinceTransformToWorld(vec2 screen_coords, vec2 screen_size, mat4 vp_inv){
-	float sx = screen_coords[0], sy = screen_coords[1];
+void LinceTransformToWorld(vec2 world_pos, vec2 screen_pos, LinceCamera* camera){
+	vec2 screen_size;
+    LinceGetScreenSize(screen_size);
 	const float w = screen_size[0];
 	const float h = screen_size[1];
+    float sx = screen_pos[0], sy = screen_pos[1];
 
-	// normalise screen coordinates to range (-1,1)
+	// Normalise screen coordinates to range (-1,1)
 	sx = 2.0f*sx/w - 1.0f;
 	sy = 1.0f - 2.0f*sy/h;
+
 	vec4 svec = {sx, sy, 0.0f, 1.0f};
 	vec4 wvec;
-    glm_mat4_mulv(vp_inv, svec, wvec);
-	screen_coords[0] = wvec[0] / wvec[3];
-	screen_coords[1] = wvec[1] / wvec[3];
+    glm_mat4_mulv(camera->view_proj_inv, svec, wvec);
+	world_pos[0] = wvec[0] / wvec[3];
+	world_pos[1] = wvec[1] / wvec[3];
+}
+
+void LinceTransformToScreen(vec2 screen_pos, vec2 world_pos, LinceCamera* camera){
+	float wx = world_pos[0], wy = world_pos[1];
+
+    // Transform by VP matrix
+    vec4 wpos = {wx, wy, 0.0, 1.0};
+    vec4 spos;
+    glm_mat4_mulv(camera->view_proj, wpos, spos);
+
+    // Normalise from NDC to clip space
+    screen_pos[0] = (spos[0]/spos[3]+1.0)/2.0;
+    screen_pos[1] = (spos[1]/spos[3]+1.0)/2.0;
 }
 
 void LinceGetMousePosWorld(vec2 pos, LinceCamera* cam){
@@ -248,7 +263,8 @@ static void LinceInit(){
     array_init(&app.overlay_stack, sizeof(LinceLayer));
     
     // Create scene stack
-    array_init(&app.scene_stack, sizeof(LinceScene));
+    // array_init(&app.scene_stack, sizeof(LinceScene));
+    hashmap_init(&app.scene_cache, 5);
 
     // Create asset manager
     LinceInitAssetManager(&app.asset_manager);
@@ -309,11 +325,18 @@ static void LinceTerminate(){
     array_uninit(&app.layer_stack);
     array_uninit(&app.overlay_stack);
     
-    // Destroy scene stack
-    while(app.scene_stack.size > 0){
-        LincePopScene();
+    // Destroy scene cache
+    char* key = NULL;
+    while ((key = hashmap_iter_keys(&app.scene_cache, key))) {
+        LinceScene* scene = hashmap_get(&app.scene_cache, key);
+        if (scene) {
+            if (scene->loaded) {
+                LinceUninitScene(scene);
+            }
+            LinceFree(scene);
+        }
     }
-    array_uninit(&app.scene_stack);
+    hashmap_uninit(&app.scene_cache);
     
     LinceTerminateUI(app.ui);
 

@@ -58,15 +58,14 @@ void HouseSceneInit(LinceScene* scene){
     house_scene->house_door = (DoorLink){
         .box = (LinceBoxCollider){.x=3-0.5, .y=1-0.5, .w=1, .h=1},
         .to_scene = "World",
-        .to_x = 6,
-        .to_y = 6,
+        .to_x = 5.5,
+        .to_y = 4.5,
     };
 }
 
 void HouseSceneUpdate(LinceScene* scene, float dt){
     HouseScene* house_scene = scene->data;
     GameData* game_data = LinceGetApp()->user_data;
-    hashmap_t* scene_cache = &game_data->scene_cache;
 
     MoveCamera(&game_data->camera, dt * game_data->camera_speed);
     
@@ -95,8 +94,8 @@ void HouseSceneUpdate(LinceScene* scene, float dt){
         if(LinceIsKeyPressed(LinceKey_e)){
             game_data->camera.pos[0] = house_scene->house_door.to_x;
             game_data->camera.pos[1] = house_scene->house_door.to_y;
-            LincePushScene(hashmap_get(scene_cache, house_scene->house_door.to_scene));
-            /// NOTE: Infinite pushing !!!
+            
+            LinceLoadScene(house_scene->house_door.to_scene);
         }
     }
 }

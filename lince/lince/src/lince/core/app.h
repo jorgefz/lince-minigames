@@ -6,6 +6,7 @@
 */
 #include "cglm/mat4.h"
 #include "lince/containers/array.h"
+#include "lince/containers/hashmap.h"
 #include "lince/core/window.h"
 #include "lince/core/layer.h"
 #include "lince/event/event.h"
@@ -45,7 +46,8 @@ typedef struct LinceApp{
     array_t layer_stack;   ///< Array of rendering layers.
     array_t overlay_stack; ///< Array of rendering overlays (drawn after layers).
     
-    array_t scene_stack; ///< Stack of scenes. Only topmost is rendered.
+    // array_t scene_stack; ///< Stack of scenes. Only topmost is rendered.
+    hashmap_t scene_cache;   
     LinceScene* current_scene; ///< Scene at the top of the stack.
 
     LinceBool running;   ///< True if the application is active.
@@ -88,19 +90,24 @@ void LincePopLayer(LinceLayer* layer);
 */
 void LincePopOverlay(LinceLayer* overlay);
 
-/** @brief Places a new scene on top of the stack.
-* @param scene Scene to run. It's 'on_init' method will be called.
+/** @brief Creates new scene in cache with defined callbacks. Will not call `on_init`.
+* @param name Scene identifier
+* @callbacks scene struct with callbacks defined
 */
-void LincePushScene(LinceScene* scene);
+void LinceRegisterScene(const char* name, LinceScene* callbacks);
 
-/** @brief Removes the topmost scene from the scene stack. It's
+/** @brief Sets a scene as the current scene. Calls its on_init method if uninitialised.
+* Must have been registered with `LinceRegisterScene`.
+* @param name Scene identifier to load
 */
-void LincePopScene();
+void LinceLoadScene(const char* name);
 
-
-/** @brief Returns the application's run time in milliseconds.
+/** @brief Return the scene with a given string identifier, or NULL if the scene has not been registered.
+* @param name Scene identifier to load
+* @returns Scene with matching identifier
 */
-double LinceGetTimeMillis();
+LinceScene* LinceGetScene(const char* name);
+
 
 /** @brief Returns the global state of the application. See `LinceApp`.
 */
@@ -116,13 +123,18 @@ float LinceGetAspectRatio();
 void LinceGetScreenSize(vec2 size);
 
 /** @brief Transforms a point in space from screen to world coodinates.
-* @param screen_coords vec2 with the x and y position on screen, overwritten with the result.
-* @param screen_size vec2 with the screen's width and height in pixels.
-* @param vp_inv Inverse of the view-projection matrix (obtained from a camera).
-* @todo Add extra argument for return vec2 world coordinates,
-*       instead of overwriting `screen_coords`.
+* @param world_pos vec2 that returns the XY position in the world.
+* @param screen_pos vec2 with the XY position in the screen to trasnform.
+* @param camera Camera with an up-to-date inverse view-projection matrix
 */
-void LinceTransformToWorld(vec2 screen_coords, vec2 screen_size, mat4 vp_inv);
+void LinceTransformToWorld(vec2 world_pos, vec2 screen_pos, LinceCamera* camera);
+
+/** @brief Transforms a point in space from world to screen coodinates.
+* @param screen_pos vec2 that returns the XY position on screen.
+* @param world_pos vec2 with the XY position in the world to transform.
+* @param camera Camera with an up-to-date view-projection matrix
+*/
+void LinceTransformToScreen(vec2 screen_pos, vec2 world_pos, LinceCamera* camera);
 
 /** @brief Returns the position of the mouse pointer in world coordinates.
 * @param pos vec2 used to return the mouse position.
