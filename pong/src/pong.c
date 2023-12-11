@@ -6,30 +6,6 @@
 
 /*
 
-To-Do
-
-1 - ECS: Add function LinceInitEntityRegistry(&ecs, comps, ...)
-2 - BoxCollider: Delete function 'LinceCalculateEntityCollisions'
-3 - BoxCollider: Add function 'LinceComputeCollision(box1, box2)'
-	- Returns value > 0 when colliders are in contact when moved by dx,dy.
-	- Value is collider flag
-
-LinceCollider {
-	int type; // Box, Circle
-	union {
-		LinceBoxCollider,
-		LinceCircleCollider,
-		...
-	}
-}
-
-4 - ECS: Add utility components and systems, e.g. check collisions for all entities with BoxCollider
-
-5 - Maybe sprite doesn't need to hold x,y position? Provide this when calling LinceDrawSprite(sprite, transform, shader).
-	- This warrants a new component Transform{x, y, width, height}.
-	- We can then remove the x,y position from the box colliders
-	
-
 --- Components ---
 
 	LinceUUID;
@@ -214,6 +190,75 @@ void PongInit(){
 }
 
 
+/*
+Detects collisions between entities that have a BoxCollider component.
+If so, sets the apprpriate collision flag on ech entity.
+
+NOTE: Algorithm is naive - O(N^2)!! Improve:
+	- When checking collision between two entities,
+	move both entities by their dx and dy, and set the collision flags for both.
+	Here, the second loop (j) will only have to go from i+1 to N.
+*/
+void LinceComputeEntityCollisions(LinceEntityRegistry* ecs) {
+	array_t query;
+	array_init(&query, sizeof(uint32_t));
+
+	// Compute collisions
+	LinceQueryEntities(ecs, &query, 1, Comp_Collider);
+	for (uint32_t i = 0; i != query.size; ++i) {
+		uint32_t id = *(uint32_t*)array_get(&query, i);
+
+		LinceBoxCollider* box = LinceGetEntityComponent(ecs, id, Comp_Collider);
+		if (box->flags & LinceBoxCollider_Static) continue;
+
+		for (uint32_t j = 0; j != query.size; ++j) {
+			if (i == j) continue;
+			uint32_t id2 = *(uint32_t*)array_get(&query, j);
+
+			LinceBoxCollider* box2 = LinceGetEntityComponent(ecs, id2, Comp_Collider);
+
+			// Horizontal collision
+			box->x += box->dx; // * dt
+			box->flags |= LinceBoxCollider_CollisionX * LinceBoxCollides(box, box2);
+			box->x -= box->dx; // * dt
+
+			// Vertical collision
+			box->y += box->dy; // * dt
+			box->flags |= LinceBoxCollider_CollisionY * LinceBoxCollides(box, box2);
+			box->y -= box->dy; // * dt
+
+			// Both
+			box->x += box->dx; // * dt
+			box->y += box->dy; // * dt
+			box->flags |= (LinceBoxCollider_CollisionX & LinceBoxCollider_CollisionY) * LinceBoxCollides(box, box2);
+			box->x -= box->dx; // * dt
+			box->y -= box->dy; // * dt
+		}
+	}
+	array_uninit(&query);
+}
+
+
+void LinceDrawEntities(LinceEntityRegistry* ecs) {
+	array_t query;
+	array_init(&query, sizeof(uint32_t));
+
+	LinceQueryEntities(ecs, &query, 1, Comp_Sprite);
+	for (uint32_t i = 0; i != query.size; ++i) {
+		uint32_t id = *(uint32_t*)array_get(&query, i);
+		LinceSprite* sprite = LinceGetEntityComponent(ecs, id, Comp_Sprite);
+
+		// Update sprite position if collider moved
+		LinceBoxCollider* box;
+		if (box = LinceGetEntityComponent(ecs, id, Comp_Collider)) {
+			sprite->x = box->x; sprite->y = box->y;
+		}
+		LinceDrawSprite(sprite, NULL);
+	}
+
+	array_uninit(&query);
+}
+
 
 
 void PongOnUpdate(float dt){
@@ -256,56 +301,8 @@ void PongOnUpdate(float dt){
 	DrawUIText(ui, width-60, 3, 40, 40, LinceFont_Droid50, "RScore", "%d", data->rscore);
 
 	
-	/* --- ECS queries  --- */
-	array_t query;
-	array_init(&query, sizeof(uint32_t));
-
-	// Compute collisions
-	LinceQueryEntities(data->ecs, &query, 1, Comp_Collider);
-	for (uint32_t i = 0; i != query.size; ++i) {
-		uint32_t id = *(uint32_t*)array_get(&query, i);
-
-		LinceBoxCollider* box = LinceGetEntityComponent(data->ecs, id, Comp_Collider);
-		if (box->flags & LinceBoxCollider_Static) continue;
-
-		for (uint32_t j = 0; j != query.size; ++j) {
-			if (i == j) continue;
-			uint32_t id2 = *(uint32_t*)array_get(&query, j);
-
-			LinceBoxCollider* box2 = LinceGetEntityComponent(data->ecs, id2, Comp_Collider);
-
-			// Horizontal collision
-			box->x += box->dx; // * dt
-			box->flags |= LinceBoxCollider_CollisionX * LinceBoxCollides(box, box2);
-			box->x -= box->dx; // * dt
-
-			// Vertical collision
-			box->y += box->dy; // * dt
-			box->flags |= LinceBoxCollider_CollisionY * LinceBoxCollides(box, box2);
-			box->y -= box->dy; // * dt
-
-			// Both
-			box->x += box->dx; // * dt
-			box->y += box->dy; // * dt
-			box->flags |= (LinceBoxCollider_CollisionX & LinceBoxCollider_CollisionY) * LinceBoxCollides(box, box2);
-			box->x -= box->dx; // * dt
-			box->y -= box->dy; // * dt
-		}
-	}
-
-	// Update collider positions
-	for (uint32_t i = 0; i != query.size; ++i) {
-		uint32_t id = *(uint32_t*)array_get(&query, i);
-		LinceBoxCollider* box = LinceGetEntityComponent(data->ecs, id, Comp_Collider);
-		if (box->flags & LinceBoxCollider_Static) continue;
-
-		if (box->flags & LinceBoxCollider_CollisionX) box->dx = -box->dx;
-		if (box->flags & LinceBoxCollider_CollisionY) box->dy = -box->dy;
-		box->x += box->dx;
-		box->y += box->dy;
-		box->flags = 0; // reset flags
-	}
-	array_clear(&query);
+	// Detect collisions
+	LinceComputeEntityCollisions(data->ecs);
 
 	// Move paddles
 	LinceBoxCollider* lbox = LinceGetEntityComponent(data->ecs, data->lpad_id, Comp_Collider);
@@ -328,24 +325,27 @@ void PongOnUpdate(float dt){
 		data->rscore += 1;
 		ResetBall();
 	}
+
+	// Update collider positions
+	array_t query;
+	array_init(&query, sizeof(uint32_t));
+	LinceQueryEntities(data->ecs, &query, 1, Comp_Collider);
+	for (uint32_t i = 0; i != query.size; ++i) {
+		uint32_t id = *(uint32_t*)array_get(&query, i);
+		LinceBoxCollider* box = LinceGetEntityComponent(data->ecs, id, Comp_Collider);
+		if (box->flags & LinceBoxCollider_Static) continue;
+
+		if (box->flags & LinceBoxCollider_CollisionX) box->dx = -box->dx;
+		if (box->flags & LinceBoxCollider_CollisionY) box->dy = -box->dy;
+		box->x += box->dx;
+		box->y += box->dy;
+		box->flags = 0; // reset flags
+	}
+	array_uninit(&query);
 	
 	// Draw all entities
 	LinceBeginScene(data->cam);
-
-	LinceQueryEntities(data->ecs, &query, 1, Comp_Sprite);
-	for (uint32_t i = 0; i != query.size; ++i) {
-		uint32_t id = *(uint32_t*)array_get(&query, i);
-		LinceSprite* sprite = LinceGetEntityComponent(data->ecs, id, Comp_Sprite);
-		
-		// Update sprite position if collider moved
-		LinceBoxCollider* box;
-		if (box = LinceGetEntityComponent(data->ecs, id, Comp_Collider)) {
-			sprite->x = box->x; sprite->y = box->y;
-		}
-		LinceDrawSprite(sprite, NULL);
-	}
-	array_uninit(&query);
-
+	LinceDrawEntities(data->ecs);
 	LinceEndScene();
 }
 
