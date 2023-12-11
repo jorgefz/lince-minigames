@@ -24,7 +24,6 @@
 
 void PongInit();
 void PongOnUpdate(float dt);
-void PongOnEvent(LinceEvent* e);
 void PongQuit();
 
 #endif /* PONG_H */

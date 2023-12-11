@@ -11,7 +11,6 @@ void SetupGame(){
 
     app->on_init      = PongInit;
     app->on_update    = PongOnUpdate;
-    app->on_event     = PongOnEvent;
     app->on_terminate = PongQuit;
 }
 
